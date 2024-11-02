@@ -1,0 +1,542 @@
+{
+    "Drone": {
+        "digital_tools": ["PLM", "MBSE", "System Simulation"],
+        "knowledge_vector": {
+            "Aerodynamics": 2,
+            "Flight Mechanics": 3,
+            "Mechanical Engineering": 3,
+            "Electrical Engineering": 3,
+            "Software Engineering": 3,
+            "Control Systems": 3,
+            "Sensor Systems": 2,
+            "Power Electronics": 2,
+            "Thermal Management": 2,
+            "Signal Processing": 2,
+            "Manufacturing": 3,
+            "Embedded Systems": 3,
+            "Human Factors": 2,
+            "Material Science": 2,
+            "Artificial Intelligence": 2
+        },
+        "req_importance": 3,
+        "children": {
+            "Propulsion System": {
+                "digital_tools": ["CAD", "FEM", "ECAD", "System Simulation", "MBSE"],
+                "knowledge_vector": {
+                    "Aerodynamics": 2,
+                    "Flight Mechanics": 3,
+                    "Mechanical Engineering": 3,
+                    "Electrical Engineering": 3,
+                    "Software Engineering": 2,
+                    "Control Systems": 3,
+                    "Sensor Systems": 1,
+                    "Power Electronics": 3,
+                    "Thermal Management": 2,
+                    "Signal Processing": 1,
+                    "Manufacturing": 3,
+                    "Embedded Systems": 2,
+                    "Human Factors": 1,
+                    "Material Science": 3,
+                    "Artificial Intelligence": 1
+                },
+                "req_importance": 3,
+                "children": {
+                    "Propeller": {
+                        "digital_tools": ["CAD", "FEM", "CFD"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 3,
+                            "Flight Mechanics": 2,
+                            "Mechanical Engineering": 3,
+                            "Electrical Engineering": 1,
+                            "Software Engineering": 1,
+                            "Control Systems": 1,
+                            "Sensor Systems": 0,
+                            "Power Electronics": 0,
+                            "Thermal Management": 1,
+                            "Signal Processing": 0,
+                            "Manufacturing": 3,
+                            "Embedded Systems": 0,
+                            "Human Factors": 0,
+                            "Material Science": 3,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 3
+                    },
+                    "Motor": {
+                        "digital_tools": ["CAD", "ECAD", "FEM"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 1,
+                            "Flight Mechanics": 2,
+                            "Mechanical Engineering": 3,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 1,
+                            "Control Systems": 2,
+                            "Sensor Systems": 1,
+                            "Power Electronics": 3,
+                            "Thermal Management": 2,
+                            "Signal Processing": 1,
+                            "Manufacturing": 3,
+                            "Embedded Systems": 2,
+                            "Human Factors": 0,
+                            "Material Science": 3,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 2
+                    },
+                    "Control Unit": {
+                        "digital_tools": ["ECAD", "Circuit Simulation", "System Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 1,
+                            "Flight Mechanics": 2,
+                            "Mechanical Engineering": 2,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 2,
+                            "Control Systems": 3,
+                            "Sensor Systems": 2,
+                            "Power Electronics": 2,
+                            "Thermal Management": 1,
+                            "Signal Processing": 2,
+                            "Manufacturing": 2,
+                            "Embedded Systems": 3,
+                            "Human Factors": 1,
+                            "Material Science": 1,
+                            "Artificial Intelligence": 1
+                        },
+                        "req_importance": 3
+                    }
+                }
+            },
+            "Structures": {
+                "digital_tools": ["CAD", "FEM", "PLM", "MBSE"],
+                "knowledge_vector": {
+                    "Aerodynamics": 3,
+                    "Flight Mechanics": 2,
+                    "Mechanical Engineering": 3,
+                    "Electrical Engineering": 1,
+                    "Software Engineering": 1,
+                    "Control Systems": 1,
+                    "Sensor Systems": 1,
+                    "Power Electronics": 0,
+                    "Thermal Management": 2,
+                    "Signal Processing": 0,
+                    "Manufacturing": 3,
+                    "Embedded Systems": 1,
+                    "Human Factors": 2,
+                    "Material Science": 3,
+                    "Artificial Intelligence": 0
+                },
+                "req_importance": 3,
+                "children": {
+                    "Main Body": {
+                        "digital_tools": ["CAD", "FEM", "CFD"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 3,
+                            "Flight Mechanics": 2,
+                            "Mechanical Engineering": 3,
+                            "Electrical Engineering": 1,
+                            "Software Engineering": 1,
+                            "Control Systems": 1,
+                            "Sensor Systems": 0,
+                            "Power Electronics": 0,
+                            "Thermal Management": 2,
+                            "Signal Processing": 0,
+                            "Manufacturing": 3,
+                            "Embedded Systems": 0,
+                            "Human Factors": 2,
+                            "Material Science": 3,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 3
+                    },
+                    "Landing Gear": {
+                        "digital_tools": ["CAD", "FEM"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 1,
+                            "Flight Mechanics": 2,
+                            "Mechanical Engineering": 3,
+                            "Electrical Engineering": 1,
+                            "Software Engineering": 0,
+                            "Control Systems": 0,
+                            "Sensor Systems": 0,
+                            "Power Electronics": 0,
+                            "Thermal Management": 1,
+                            "Signal Processing": 0,
+                            "Manufacturing": 3,
+                            "Embedded Systems": 0,
+                            "Human Factors": 1,
+                            "Material Science": 2,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 2
+                    },
+                    "Arms": {
+                        "digital_tools": ["CAD", "FEM", "CFD"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 3,
+                            "Flight Mechanics": 2,
+                            "Mechanical Engineering": 3,
+                            "Electrical Engineering": 1,
+                            "Software Engineering": 1,
+                            "Control Systems": 1,
+                            "Sensor Systems": 0,
+                            "Power Electronics": 0,
+                            "Thermal Management": 1,
+                            "Signal Processing": 0,
+                            "Manufacturing": 3,
+                            "Embedded Systems": 1,
+                            "Human Factors": 1,
+                            "Material Science": 3,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 3
+                    }
+                }
+            },
+            "Power System": {
+                "digital_tools": ["ECAD", "Circuit Simulation", "System Simulation", "MBSE"],
+                "knowledge_vector": {
+                    "Aerodynamics": 1,
+                    "Flight Mechanics": 2,
+                    "Mechanical Engineering": 2,
+                    "Electrical Engineering": 3,
+                    "Software Engineering": 2,
+                    "Control Systems": 2,
+                    "Sensor Systems": 1,
+                    "Power Electronics": 3,
+                    "Thermal Management": 3,
+                    "Signal Processing": 1,
+                    "Manufacturing": 2,
+                    "Embedded Systems": 2,
+                    "Human Factors": 1,
+                    "Material Science": 3,
+                    "Artificial Intelligence": 1
+                },
+                "req_importance": 3,
+                "children": {
+                    "Battery": {
+                        "digital_tools": ["ECAD", "FEM"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 1,
+                            "Mechanical Engineering": 2,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 1,
+                            "Control Systems": 1,
+                            "Sensor Systems": 0,
+                            "Power Electronics": 3,
+                            "Thermal Management": 3,
+                            "Signal Processing": 0,
+                            "Manufacturing": 2,
+                            "Embedded Systems": 2,
+                            "Human Factors": 1,
+                            "Material Science": 3,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 3
+                    },
+                    "Power Management": {
+                        "digital_tools": ["ECAD", "Circuit Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 1,
+                            "Mechanical Engineering": 2,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 2,
+                            "Control Systems": 3,
+                            "Sensor Systems": 1,
+                            "Power Electronics": 3,
+                            "Thermal Management": 2,
+                            "Signal Processing": 1,
+                            "Manufacturing": 2,
+                            "Embedded Systems": 3,
+                            "Human Factors": 1,
+                            "Material Science": 1,
+                            "Artificial Intelligence": 1
+                        },
+                        "req_importance": 3
+                    },
+                    "Wiring": {
+                        "digital_tools": ["ECAD"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 1,
+                            "Mechanical Engineering": 2,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 0,
+                            "Control Systems": 1,
+                            "Sensor Systems": 0,
+                            "Power Electronics": 1,
+                            "Thermal Management": 1,
+                            "Signal Processing": 0,
+                            "Manufacturing": 2,
+                            "Embedded Systems": 1,
+                            "Human Factors": 1,
+                            "Material Science": 2,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 2
+                    }
+                }
+            },
+            "Flight Control System": {
+                "digital_tools": ["System Simulation", "MBSE", "Code Editor", "Circuit Simulation"],
+                "knowledge_vector": {
+                    "Aerodynamics": 2,
+                    "Flight Mechanics": 3,
+                    "Mechanical Engineering": 2,
+                    "Electrical Engineering": 3,
+                    "Software Engineering": 3,
+                    "Control Systems": 3,
+                    "Sensor Systems": 3,
+                    "Power Electronics": 2,
+                    "Thermal Management": 1,
+                    "Signal Processing": 3,
+                    "Manufacturing": 1,
+                    "Embedded Systems": 3,
+                    "Human Factors": 2,
+                    "Material Science": 1,
+                    "Artificial Intelligence": 2
+                },
+                "req_importance": 3,
+                "children": {
+                    "Controllers": {
+                        "digital_tools": ["System Simulation", "Circuit Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 1,
+                            "Flight Mechanics": 3,
+                            "Mechanical Engineering": 2,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 2,
+                            "Control Systems": 3,
+                            "Sensor Systems": 2,
+                            "Power Electronics": 2,
+                            "Thermal Management": 1,
+                            "Signal Processing": 2,
+                            "Manufacturing": 2,
+                            "Embedded Systems": 3,
+                            "Human Factors": 1,
+                            "Material Science": 1,
+                            "Artificial Intelligence": 1
+                        },
+                        "req_importance": 3
+                    },
+                    "Sensors": {
+                        "digital_tools": ["System Simulation", "Circuit Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 1,
+                            "Flight Mechanics": 2,
+                            "Mechanical Engineering": 2,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 2,
+                            "Control Systems": 2,
+                            "Sensor Systems": 3,
+                            "Power Electronics": 1,
+                            "Thermal Management": 1,
+                            "Signal Processing": 3,
+                            "Manufacturing": 1,
+                            "Embedded Systems": 2,
+                            "Human Factors": 1,
+                            "Material Science": 1,
+                            "Artificial Intelligence": 2
+                        },
+                        "req_importance": 3
+                    },
+                    "Algorithms": {
+                        "digital_tools": ["Code Editor", "System Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 2,
+                            "Mechanical Engineering": 1,
+                            "Electrical Engineering": 1,
+                            "Software Engineering": 3,
+                            "Control Systems": 3,
+                            "Sensor Systems": 2,
+                            "Power Electronics": 1,
+                            "Thermal Management": 0,
+                            "Signal Processing": 3,
+                            "Manufacturing": 0,
+                            "Embedded Systems": 3,
+                            "Human Factors": 1,
+                            "Material Science": 0,
+                            "Artificial Intelligence": 3
+                        },
+                        "req_importance": 3
+                    }
+                }
+            },
+            "Communication": {
+                "digital_tools": ["System Simulation", "ECAD", "Circuit Simulation"],
+                "knowledge_vector": {
+                    "Aerodynamics": 0,
+                    "Flight Mechanics": 1,
+                    "Mechanical Engineering": 1,
+                    "Electrical Engineering": 3,
+                    "Software Engineering": 2,
+                    "Control Systems": 2,
+                    "Sensor Systems": 1,
+                    "Power Electronics": 2,
+                    "Thermal Management": 1,
+                    "Signal Processing": 3,
+                    "Manufacturing": 2,
+                    "Embedded Systems": 2,
+                    "Human Factors": 1,
+                    "Material Science": 2,
+                    "Artificial Intelligence": 1
+                },
+                "req_importance": 2,
+                "children": {
+                    "Antenna": {
+                        "digital_tools": ["ECAD", "System Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 1,
+                            "Mechanical Engineering": 1,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 1,
+                            "Control Systems": 1,
+                            "Sensor Systems": 1,
+                            "Power Electronics": 2,
+                            "Thermal Management": 1,
+                            "Signal Processing": 2,
+                            "Manufacturing": 2,
+                            "Embedded Systems": 2,
+                            "Human Factors": 1,
+                            "Material Science": 2,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 2
+                    },
+                    "Transmission Link": {
+                        "digital_tools": ["ECAD", "Circuit Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 1,
+                            "Mechanical Engineering": 1,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 2,
+                            "Control Systems": 2,
+                            "Sensor Systems": 1,
+                            "Power Electronics": 2,
+                            "Thermal Management": 1,
+                            "Signal Processing": 3,
+                            "Manufacturing": 1,
+                            "Embedded Systems": 2,
+                            "Human Factors": 1,
+                            "Material Science": 1,
+                            "Artificial Intelligence": 1
+                        },
+                        "req_importance": 3
+                    }
+                }
+            },
+            "Camera System": {
+                "digital_tools": ["CAD", "FEM", "ECAD", "System Simulation"],
+                "knowledge_vector": {
+                    "Aerodynamics": 0,
+                    "Flight Mechanics": 1,
+                    "Mechanical Engineering": 2,
+                    "Electrical Engineering": 3,
+                    "Software Engineering": 2,
+                    "Control Systems": 2,
+                    "Sensor Systems": 3,
+                    "Power Electronics": 1,
+                    "Thermal Management": 1,
+                    "Signal Processing": 3,
+                    "Manufacturing": 2,
+                    "Embedded Systems": 2,
+                    "Human Factors": 1,
+                    "Material Science": 2,
+                    "Artificial Intelligence": 2
+                },
+                "req_importance": 2,
+                "children": {
+                    "Camera": {
+                        "digital_tools": ["System Simulation", "ECAD"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 0,
+                            "Mechanical Engineering": 2,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 1,
+                            "Control Systems": 1,
+                            "Sensor Systems": 3,
+                            "Power Electronics": 1,
+                            "Thermal Management": 1,
+                            "Signal Processing": 3,
+                            "Manufacturing": 2,
+                            "Embedded Systems": 2,
+                            "Human Factors": 1,
+                            "Material Science": 2,
+                            "Artificial Intelligence": 1
+                        },
+                        "req_importance": 3
+                    },
+                    "Gimbal": {
+                        "digital_tools": ["CAD", "FEM"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 0,
+                            "Mechanical Engineering": 3,
+                            "Electrical Engineering": 2,
+                            "Software Engineering": 1,
+                            "Control Systems": 2,
+                            "Sensor Systems": 1,
+                            "Power Electronics": 1,
+                            "Thermal Management": 1,
+                            "Signal Processing": 1,
+                            "Manufacturing": 3,
+                            "Embedded Systems": 1,
+                            "Human Factors": 1,
+                            "Material Science": 3,
+                            "Artificial Intelligence": 0
+                        },
+                        "req_importance": 2
+                    },
+                    "Control": {
+                        "digital_tools": ["ECAD", "System Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 1,
+                            "Mechanical Engineering": 1,
+                            "Electrical Engineering": 2,
+                            "Software Engineering": 2,
+                            "Control Systems": 3,
+                            "Sensor Systems": 1,
+                            "Power Electronics": 1,
+                            "Thermal Management": 0,
+                            "Signal Processing": 2,
+                            "Manufacturing": 1,
+                            "Embedded Systems": 3,
+                            "Human Factors": 1,
+                            "Material Science": 1,
+                            "Artificial Intelligence": 1
+                        },
+                        "req_importance": 3
+                    },
+                    "Lidar": {
+                        "digital_tools": ["ECAD", "System Simulation"],
+                        "knowledge_vector": {
+                            "Aerodynamics": 0,
+                            "Flight Mechanics": 1,
+                            "Mechanical Engineering": 2,
+                            "Electrical Engineering": 3,
+                            "Software Engineering": 2,
+                            "Control Systems": 2,
+                            "Sensor Systems": 3,
+                            "Power Electronics": 1,
+                            "Thermal Management": 0,
+                            "Signal Processing": 3,
+                            "Manufacturing": 2,
+                            "Embedded Systems": 2,
+                            "Human Factors": 1,
+                            "Material Science": 2,
+                            "Artificial Intelligence": 2
+                        },
+                        "req_importance": 2
+                    }
+                }
+            }
+        }
+    }
+}
+       

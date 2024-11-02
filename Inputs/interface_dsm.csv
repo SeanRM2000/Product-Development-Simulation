@@ -1,0 +1,19 @@
+,Propeller,Motor,Control Unit,Main Body,Landing Gear,Arms,Camera,Gimbal,Control,Lidar,Battery,Power Management,Wiring,Controllers,Sensors,Algorithms,Antenna,Transmission Link
+Propeller,0,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Motor,2,0,3,0,0,2,0,0,0,0,1,1,0,0,0,0,0,0
+Control Unit,1,3,0,0,0,0,0,0,1,0,0,1,1,1,0,0,0,0
+Main Body,0,0,0,0,2,3,0,0,0,0,0,0,0,0,0,0,0,0
+Landing Gear,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Arms,0,2,0,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+Camera,0,0,0,0,0,0,0,1,2,2,0,0,0,0,0,0,0,0
+Gimbal,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0
+Control,0,0,1,0,0,0,2,1,0,3,0,0,0,0,1,1,0,0
+Lidar,0,0,0,0,0,0,2,0,3,0,0,0,0,0,0,0,0,0
+Battery,0,1,0,0,0,0,0,0,0,0,0,2,1,0,0,0,0,0
+Power Management,0,1,1,0,0,0,0,0,0,0,2,0,1,0,0,0,0,0
+Wiring,0,0,1,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0
+Controllers,0,0,1,0,0,0,0,0,0,0,0,0,0,0,2,2,0,0
+Sensors,0,0,0,0,0,0,0,0,1,0,0,0,0,2,0,1,0,0
+Algorithms,0,0,0,0,0,0,0,0,1,0,0,0,0,2,1,0,0,0
+Antenna,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3
+Transmission Link,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3,0
