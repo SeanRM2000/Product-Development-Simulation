@@ -419,8 +419,8 @@ class PDsim:
             activity_completion = 0
             
         time_since_assignment = self.global_clock - time_at_assignment
-        urgency = importance * urgency_factor * time_since_assignment
-        return importance + urgency + activity_completion
+        prio = importance * (1 + urgency_factor * time_since_assignment)
+        return prio * (1 + 2*activity_completion)
     
     
     def technical_problem(self, agent, task):
@@ -522,7 +522,6 @@ class PDsim:
 
                     # delete from queue
                     del self.org_network.get_agent(agent)['task_queue'][task]
-                    
                     break # there can only be one tasks finished at a time
     
     
@@ -530,75 +529,30 @@ class PDsim:
         self.task_network.nodes[task]['task_status'] = 'Completed'
         self.task_network.nodes[task]['completed'] = True
         
-        if self.task_network.nodes[task]['quality'] > 0:         ########################################### maybe not do this and only use the old competency which has to be increased
-            self.task_network.nodes[task]['quality'] += (1 - self.task_network.nodes[task]['quality']) * self.org_network.get_agent(agent)['task_queue'][task]['additional_info']['competency']
-        else:
-            self.task_network.nodes[task]['quality'] = self.org_network.get_agent(agent)['task_queue'][task]['additional_info']['competency']
-        
         activity = self.task_network.nodes[task]['activity_name']
         activity_type = self.task_network.nodes[task]['activity_type']
         architecture_element = self.task_network.nodes[task]['architecture_element']
                     
-        self.update_activity_completion(self.task_network.nodes[task]['activity_name']) ######################## could be optimized
-        
+        self.update_activity_completion(self.task_network.nodes[task]['activity_name'])
 
         match self.task_network.nodes[task]['activity_type']:     ###################### has to be changed
             case 'Definition':
+                self.task_network.nodes[task]['quality'] += (1 - self.architecture.nodes[architecture_element]['perceived_definition_quality']) * self.org_network.get_agent(agent)['task_queue'][task]['additional_info']['competency']
+                
                 task_quality_values = [self.task_network.nodes[t]['quality'] for t in self.activity_network.nodes[activity]['tasks']]
                 self.architecture.nodes[architecture_element]['definition_quality'] = np.mean(task_quality_values)   ############ should also depend upon product knowledge wich is very low at beginning or zero for never before done products
                 
             case 'Design': #| 'Integration':
+                self.task_network.nodes[task]['quality'] += (1 - self.architecture.nodes[architecture_element]['perceived_design_quality']) * self.org_network.get_agent(agent)['task_queue'][task]['additional_info']['competency']
+
                 task_quality_values = [self.task_network.nodes[t]['quality'] for t in self.activity_network.nodes[activity]['tasks']]
                 self.architecture.nodes[architecture_element]['design_quality'] = np.mean(task_quality_values)
             
             case 'Testing':
                 # check testing failure
-                predecessor_activity = list(self.activity_network.predecessors(activity))[0]   ############### has to be changed if there are test planning activities     ##### maybe include a seperate review
-                predecessor_activity_type = self.activity_network.nodes[predecessor_activity]['activity_type']
-
-                match predecessor_activity_type:
-                    case 'Definition':
-                        
-                        #####relevant_elements = self.architecture_graph.get_all_parents(architecture_element) # check predessesors   ######## requirements importance to track higher level requirments (high importance will lead to a higher likelihood to reveal issues with the )
-                        ######relevant_elements = [] + relevant_elements
-                        #####for element in relevant_elements:
-                        preceived_definition_quality = self.calc_quantification_result(architecture_element, task, agent, 'definition_quality')
-                        #self.architecture.nodes[architecture_element]['preceived_definition_quality'] = preceived_definition_quality
-                    
-                        #self.check_testing_success().
-                        
-                        # maybe check knwoledge base for previous knowledge on this if test was unsuccessfull
-                        
-                        if random.random() > preceived_definition_quality:
-                            rework_percentage = 1 - self.activity_network.nodes[activity]['degree_of_completion'] # degree of rework is dependent upon how far testing got
-                            # send testing information back first
-                            self.activity_rework(predecessor_activity, rework_percentage)
-                            
-                            
-                    case 'Design':################################################################################################################
-                        
-                        preceived_definition_quality = self.calc_quantification_result(architecture_element, task, agent, 'design_quality')
-                        if random.random() > preceived_definition_quality:
-                            # amount of rework is dependent upon testing progression
-                            rework_percentage = 1 - self.activity_network.nodes[activity]['degree_of_completion']
-                            # send testing information back first
-                            self.activity_rework(predecessor_activity, rework_percentage)
-                            
-                            # reset testing task
-                            self.reset_activity(activity)
-                            
-                            # Event log
-                            self.event_logger(f'"{task}" failed due to quality issues. {round(rework_percentage * 100)}% of "{predecessor_activity}" is being reworked.')
-                            return
-                                        
-                    case 'Integration':
-                        self.architecture.nodes[architecture_element]['overall_quality']
-                        pass
-                    
-                                    
-                if self.task_network.nodes[task]['final_task']:
-                    self.architecture.nodes[architecture_element]['completion'] = 1   #####  has to be changed
-            
+                testing_successful = self.review_quantification_result(task, agent)
+                if not testing_successful:
+                    return
         
         # if single successor of same type: self assign that task
         successors = list(self.task_network.successors(task))
@@ -611,11 +565,70 @@ class PDsim:
                 for succ in successors:
                     if all(self.task_network.nodes[pred]['completed'] for pred in self.task_network.predecessors(succ)):
                         self.tasks_ready.append(succ)
-                
+    
+    
+    def review_quantification_result(self, task, agent):
+        activity = self.task_network.nodes[task]['activity_name']
+        architecture_element = self.task_network.nodes[task]['architecture_element']
+        
+        predecessor_activity = list(self.activity_network.predecessors(activity))[0]   ############### has to be changed if there are test planning activities     ##### maybe include a seperate review
+        predecessor_activity_type = self.activity_network.nodes[predecessor_activity]['activity_type']
 
-    def reset_activity(self, activity):
+        testing_successfull = True
+        match predecessor_activity_type: ################## maybe only use this to generate the string for the check
+            case 'Definition':
+                
+                #####relevant_elements = self.architecture_graph.get_all_parents(architecture_element) # check predessesors   ######## requirements importance to track higher level requirments (high importance will lead to a higher likelihood to reveal issues with the )
+                ######relevant_elements = [] + relevant_elements
+                #####for element in relevant_elements:
+                perceived_definition_quality = self.calc_quantification_result(architecture_element, task, agent, 'definition_quality')
+                #self.architecture.nodes[architecture_element]['preceived_definition_quality'] = preceived_definition_quality
+            
+                #self.check_testing_success(activity, predecessor_activity)
+                
+                # maybe check knwoledge base for previous knowledge on this if test was unsuccessfull
+                
+                if random.random() > perceived_definition_quality:
+                    rework_percentage = 1 - self.activity_network.nodes[activity]['degree_of_completion'] # degree of rework is dependent upon how far testing got
+                    ############################## send testing information back first???
+                    self.activity_rework(predecessor_activity, rework_percentage)
+                    
+                    
+            case 'Design':
+                perceived_design_quality = self.calc_quantification_result(architecture_element, task, agent, 'design_quality')
+                self.task_network.nodes[task]['quality'] = perceived_design_quality
+                task_quality_values = [self.task_network.nodes[t]['quality'] for t in self.activity_network.nodes[activity]['tasks']]
+                self.architecture.nodes[architecture_element]['perceived_design_quality'] = np.mean(task_quality_values)
+                
+                if random.random() > perceived_design_quality:
+                    testing_successfull = False
+                    # amount of rework is dependent of testing progression
+                    rework_percentage = 1 - self.activity_network.nodes[activity]['degree_of_completion']
+                    
+                    # trigger rework and reset testing activity
+                    self.activity_rework(predecessor_activity, rework_percentage)
+                    self.reset_quantification_activity(activity)
+                     
+                    # Event log
+                    self.event_logger(f'"{task}" failed due to quality issues. {round(rework_percentage * 100)}% of "{predecessor_activity}" is being reworked.')
+
+                                
+            case 'Integration':########################################################
+                self.architecture.nodes[architecture_element]['overall_quality']
+   
+                            
+        if self.task_network.nodes[task]['final_task']:
+            self.architecture.nodes[architecture_element]['completion'] = 1   #####  has to be changed
+        
+        return testing_successfull
+
+        
+
+    def reset_quantification_activity(self, activity):
         self.activity_network.nodes[activity]['activity_status'] = 'Interrupted'
         self.activity_network.nodes[activity]['degree_of_completion'] = 0
+        
+
         
         tasks_to_be_reset = []
         for task in self.activity_network.nodes[activity]['tasks']: 
@@ -624,7 +637,7 @@ class PDsim:
             
             self.task_network.nodes[task]['quality'] = 0
             self.task_network.nodes[task]['task_status'] = 'Waiting'
-            self.task_network.nodes[task]['completed'] = False                       ########### maybe also reset repetitions counter
+            self.task_network.nodes[task]['completed'] = False
                 
         # delete all ongoing tasks from task queues of agents
         for agent in self.org_network.get_all_agents():
@@ -655,14 +668,13 @@ class PDsim:
         agent_competency = self.org_network.get_agent(agent)['task_queue'][task]['additional_info']['competency']
         
         bias = (1 - tool_accuracy * agent_competency) * tool_uncertainty
-        lower_bound = actual_quality * (1 - bias)
-        upper_bound = actual_quality * (1 + 2 * bias)
-        preceived_quality = random.triangular(lower_bound, upper_bound)
+        upper_bound = actual_quality * (1 + bias)
+        preceived_quality = random.triangular(actual_quality, upper_bound)
 
         return min(preceived_quality, 1)
         
             
-    def update_activity_completion(self, activity):
+    def update_activity_completion(self, activity): ######################## could be optimized
         completed_tasks = 0
         for task in self.activity_network.nodes[activity]['tasks']:
             if self.task_network.nodes[task]['completed']:
@@ -726,13 +738,7 @@ class PDsim:
                     if succ in tasks_to_be_reworked:
                         if all(self.task_network.nodes[pred]['completed'] for pred in self.task_network.predecessors(succ)):
                             self.tasks_ready.append(succ)
-
-
-                        
-        # self.update_activity_completion(activity)
-        # print('To be reworked: ', tasks_to_be_reworked)
-        # print('Next tasks: ', self.tasks_ready)
-        # input()
+                            
     
     
     def complete_consultation(self, agent, task_info):
@@ -1882,7 +1888,7 @@ if __name__ == "__main__":
         sim = PDsim(debug=False, 
                     debug_interval=100, 
                     debug_stop=3697, 
-                    log_events=True, 
+                    log_events=False, 
                     random_seed=42)
         sim.sim_run()
         

@@ -23,8 +23,15 @@ knowledge_retention_knowledge_base = 0.05 # %
 random_task_network = True
 random_task_times = False
 
-# Non-random Task Network
+### Task Time generation
+# Static Times:
 nominal_task_effort = 4 # h
+# Random Times:
+min_task_effort = 2 # h
+max_task_effort = 6 # h
+
+
+# Non-random Task Network Generation
 fully_linear_tasks = False
 task_parallelization = { # Task concurrency to reduce the number of 
     'Definition': 0.5,
@@ -34,8 +41,6 @@ task_parallelization = { # Task concurrency to reduce the number of
 }
 
 # Random Task Network Generation
-min_task_effort = 2 # h
-max_task_effort = 6 # h
 reconnect_probability = 0.1
 max_in = 8
 max_out = 5

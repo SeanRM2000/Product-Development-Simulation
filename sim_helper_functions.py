@@ -8,7 +8,7 @@ def convert_hours_to_ymd(hours, remainder=False):
     total_days = hours / 24
     years = int(total_days / 365)
     remaining_days = total_days % 365
-    months = int(remaining_days / 30)
+    months = int(remaining_days / 30.42)
     days = remaining_days % 30
     remaining_hours = round((days - int(days)) * 24, 1)
     if remainder:
