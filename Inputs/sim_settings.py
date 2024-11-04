@@ -20,7 +20,9 @@ stability_interval = 25
 
 
 # For plotting and results
-summarize_gantt_chart = True
+output_learning = False
+show_plots = False
+summarize_gantt_chart = True ####### not yet implemented
 use_moving_average = True
 moving_average_plots = 168 # h
 include_noise_in_results = True

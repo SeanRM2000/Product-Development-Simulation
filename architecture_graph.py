@@ -26,11 +26,11 @@ class ArchitectureGraph:
                                    interfaces=[],
                                    completion=0,
                                    definition_quality=0,
-                                   preceived_definition_quality=0,
+                                   perceived_definition_quality=0,
                                    design_quality=0,
-                                   preceived_design_quality=0,
+                                   perceived_design_quality=0,
                                    overall_quality=0,
-                                   preceived_overall_quality=0
+                                   perceived_overall_quality=0
                                    )
 
     def add_hierarchical_dependency(self, parent, child):
