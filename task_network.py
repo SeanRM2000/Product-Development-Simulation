@@ -151,6 +151,8 @@ class TaskNetwork():
                     num_not_overlapped_tasks = math.ceil(num_tasks * (1 - activity_overlap))
                     num_overlapped_tasks = num_tasks - num_not_overlapped_tasks
                     for layer in list(nx.bfs_layers(self.task_graph, self.generate_task_name(0, activity_name))): # start bfs from first activity node
+                        layer.sort()
+                        random.shuffle(layer)
                         for task in layer:
                             if len(outgoing_dependencies) == num_not_overlapped_tasks:
                                 break
@@ -167,6 +169,7 @@ class TaskNetwork():
         
         overlapped_tasks = []
         for layer in bfs_layers:
+            layer.sort()
             random.shuffle(layer)
             for task in layer:
                 if len(overlapped_tasks) == num_overlapped_tasks:
@@ -195,13 +198,12 @@ class TaskNetwork():
         # create paths not longer than the longest path
         remaining_tasks = n_tasks
         task_number = 1
+
         while remaining_tasks > 0:
-            for i in range(longest_path):
+            prev_task_name = start_task_name
+            for _ in range(longest_path):
                 task_name = self.add_task(task_number, activity_name, task_times[task_number])
-                if i == 0:
-                    self.task_graph.add_edge(start_task_name, task_name)
-                else:
-                    self.task_graph.add_edge(prev_task_name, task_name)
+                self.task_graph.add_edge(prev_task_name, task_name)
                 prev_task_name = task_name
                 
                 task_number += 1
@@ -305,11 +307,14 @@ class TaskNetwork():
         bfs_layers = list(nx.bfs_layers(self.task_graph, start_task))
         
         collected_tasks = []
+
         for layer in bfs_layers:
+            layer.sort()
+            random.shuffle(layer)
             activity_layer_tasks = [task for task in layer if self.task_graph.nodes[task]['activity_name'] == activity_name]
-            random.shuffle(activity_layer_tasks)
             collected_tasks.extend(activity_layer_tasks)
         self.activity_network.nodes[activity_name]['tasks'] = collected_tasks
+    
     
     def plot_task_graph(self):
         color_map = {

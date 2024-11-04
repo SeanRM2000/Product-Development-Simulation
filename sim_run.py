@@ -31,28 +31,18 @@ class PDsim:
         self.log_events = log_events
         self.montecarlo = montecarlo
         
-        if self.log_events and not self.montecarlo:
-            timestamp = time.time()
-            dt_object = datetime.datetime.fromtimestamp(timestamp)
-            formatted_time = dt_object.strftime("%Y-%m-%d_%H-%M-%S")
-            self.log_file_name = 'log_files/simulation_log_' + formatted_time + '.txt'
-            with open(self.log_file_name, 'w') as f:
-                f.write('Simulation Log ' + formatted_time + '\n')
-                f.write('========================================\n')
-        
-        
         if not self.montecarlo:
             self.init_start_time = time.time()
-        
             # debugging
             self.debug = debug
             self.debug_interval = debug_interval
             self.debug_stop = debug_stop
-                
+            
             # random seed
             if random_seed:
                 random.seed(random_seed)
                 np.random.seed(random_seed)
+        
         else:
             self.log_events = False
             random_seed = None
@@ -64,12 +54,11 @@ class PDsim:
         self.architecture = self.architecture_graph.architecture
         tools = Tools(test_data=use_test_data)
         self.tools = tools.tool_list
-        self.activity_network = ActivityNetwork(self.architecture, tools, random_seed=random_seed).activity_graph
+        self.activity_network = ActivityNetwork(self.architecture, tools).activity_graph
         self.task_network = TaskNetwork(self.activity_network, 
                                         self.architecture,
                                         randomize_structure=random_task_network, 
-                                        randomize_task_times=random_task_times,
-                                        random_seed=random_seed
+                                        randomize_task_times=random_task_times
                                         ).task_graph
         self.org_network = OrganizationalGraph(test_data=use_test_data)
         
@@ -79,6 +68,9 @@ class PDsim:
         # Consitency checks of architecture and organization --> has to be based on the json files because of knowledge vector ordering
         #consitency_check(self.architecture, self.activity_network, self.task_network, self.org_network, self.org_capabilities)
         
+        # log file
+        if self.log_events and not self.montecarlo:
+            self.start_sim_log()
         
         
         # intervall for noise creation based on nominal task time
@@ -198,14 +190,8 @@ class PDsim:
             
         # Sim results
         if self.montecarlo is False:
-            sim_time = time.time() - start_time
+            self.sim_time = time.time() - start_time
             self.results()
-            
-            print(f'\nInitialization Time: {self.init_time:.2f} s')
-            print(f'Simulation Time:     {sim_time:.2f} s')
-            print(f'Data Prep Time:      {self.data_prep_time:.2f} s')
-            print('____________________________')
-            print(f'Total Time:          {self.total_time:.2f} s\n')
         else:
             return self.results()
             
@@ -555,7 +541,7 @@ class PDsim:
                     return
         
         # if single successor of same type: self assign that task
-        successors = list(self.task_network.successors(task))
+        successors = sorted(list(self.task_network.successors(task))) # .successors can output random orders ---> this cost me 2 days of debugging FML
         if successors:
             if (len(successors) == 1 and len(list(self.task_network.predecessors(successors[0]))) == 1 and
                 self.task_network.nodes[successors[0]]['activity_type'] == activity_type and
@@ -733,7 +719,7 @@ class PDsim:
             self.tasks_ready.append(activity_info['tasks'][0])
         else:
             for task in tasks_with_no_rework:
-                successors = list(self.task_network.successors(task))
+                successors = sorted(list(self.task_network.successors(task)))# .successors can output random orders ---> this cost me 2 days of debugging FML
                 for succ in successors:
                     if succ in tasks_to_be_reworked:
                         if all(self.task_network.nodes[pred]['completed'] for pred in self.task_network.predecessors(succ)):
@@ -1176,12 +1162,78 @@ class PDsim:
     #### Data Collection and Results ########################################################################################################################
     #########################################################################################################################################################
     
+    def start_sim_log(self):
+        timestamp = time.time()
+        dt_object = datetime.datetime.fromtimestamp(timestamp)
+        formatted_time = dt_object.strftime("%Y-%m-%d_%H-%M-%S")
+        self.log_file_name = 'log_files/simulation_log_' + formatted_time + '.txt'
+        with open(self.log_file_name, 'w') as f:
+            f.write('Simulation Log ' + formatted_time + '\n')
+            f.write('=======================================================================\n\n')
+            f.write('=======================================================================\n')
+            f.write('Architecture Elements:\n')
+            f.write('=======================================================================\n')
+            for node, data in self.architecture.nodes(data=True):
+                f.write(f'{node}:\n')
+                for key, value in data.items():
+                    f.write(f'      {key}: {value}\n')
+            f.write('=======================================================================\n\n')
+            f.write('=======================================================================\n')
+            f.write('Activities:\n')
+            f.write('=======================================================================\n')
+            for node, data in self.activity_network.nodes(data=True):
+                f.write(f'{node}:\n')
+                for key, value in data.items():
+                    f.write(f'      {key}: {value}\n')
+            f.write('=======================================================================\n\n')
+            f.write('=======================================================================\n')
+            f.write('Tasks:\n')
+            f.write('=======================================================================\n')
+            for node, data in self.task_network.nodes(data=True):
+                f.write(f'{node}:\n')
+                for key, value in data.items():
+                    f.write(f'      {key}: {value}\n')
+                f.write(f'      Successors: {sorted(list(self.task_network.successors(node)))}\n')
+            f.write('=======================================================================\n\n')
+            f.write('=======================================================================\n')
+            f.write('Organization:\n')
+            f.write('=======================================================================\n')
+            for team in self.org_network.get_all_teams():
+                members = self.org_network.get_members(team)
+                f.write(f'{team}:\n')
+                for member in members:
+                    f.write(f'      {member}:\n')
+                    data = self.org_network.get_agent(member)
+                    for key, value in data.items():
+                        f.write(f'              {key}: {value}\n')
+            f.write('=======================================================================\n\n')
+            f.write('=======================================================================\n')
+            f.write('Tools:\n')
+            f.write('=======================================================================\n')
+            for tool, data in self.tools.items():
+                f.write(f'{tool}:\n')
+                for key, value in data.items():
+                    f.write(f'      {key}: {value}\n')
+            f.write('=======================================================================\n\n')
+            f.write('=======================================================================\n')
+            f.write('Simulation Event Logs:\n')
+            f.write('=======================================================================\n')
+            
+    
     def event_logger(self, text):
-        if self.log_events:
+        if self.log_events and not self.montecarlo:
             string = f'[{round(self.global_clock, 1)}]: {text}'
             print(string)
             with open(self.log_file_name, 'a') as f:
                 f.write(string + '\n')
+                
+    def log_results(self):
+        if self.log_events and not self.montecarlo:
+            with open(self.log_file_name, 'a') as f:
+                f.write('=======================================================================\n\n')
+                f.write('=======================================================================\n')
+                f.write('Simulation Results:\n')
+                f.write('=======================================================================\n')
     
     
     def collect_data(self):
@@ -1268,12 +1320,19 @@ class PDsim:
             elif last_state != 'In Progress':
                 self.gantt_tracker[activity].append(('In Progress', self.global_clock))
                 
+    
+    def print_result(self, string):
+        print(string)
+        if self.log_events and not self.montecarlo:
+            with open(self.log_file_name, 'a') as f:
+                f.write(string + '\n')
                 
                 
     
-    def results(self):        
+    def results(self):
+        self.log_results()  
         if not self.montecarlo:
-            data_prep_start_time = time.time()
+            self.data_prep_start_time = time.time()
         
         util_over_time, average_util = self.calculate_utilization_over_time()
         effort_backlog = self.sort_effort_backlog()
@@ -1283,7 +1342,6 @@ class PDsim:
         # skip print statements and plots in case of a monte carlo
         if self.montecarlo:
             lead_time = self.global_clock
-            
             return lead_time, self.cost_tracker[-1], average_util, total_effort
         
         
@@ -1291,51 +1349,52 @@ class PDsim:
         
         print('\n__________________________________________________')
         
-        print('\nResults:')
-        print(f'     Lead Time: {lead_time[0]} year(s), {lead_time[1]} month(s), {lead_time[2]} day(s)')
-        print(f'     Total Cost: ${round(self.cost_tracker[-1] / 1000, 1)}k')
-        print(f'     Total Cost (including idle): ${round(self.cost_tracker_with_idle[-1] / 1000, 1)}k')
-        print(f'     Total Effort: {round(self.effort_tracker[-1] / work_hours_per_day, 1)} person-days')
+        print('\nResults:\n')
+        self.print_result(f'Lead Time: {lead_time[0]} year(s), {lead_time[1]} month(s), {lead_time[2]} day(s)')
+        self.print_result(f'Total Cost: ${round(self.cost_tracker[-1] / 1000, 1)}k')
+        self.print_result(f'Total Cost (including idle): ${round(self.cost_tracker_with_idle[-1] / 1000, 1)}k')
+        self.print_result(f'Total Effort: {round(self.effort_tracker[-1] / work_hours_per_day, 1)} person-days')
 
         # Resource Utilization
         if include_noise_in_results:
-            print('\nResource Utilizations (including noise):')
+            self.print_result('\nResource Utilizations (including noise):')
         else:
-            print('\nResource Utilizations:')
+            self.print_result('\nResource Utilizations:')
         for entry, utilization in average_util.items():
             if split_plots != 'profession':
-                print(f'     {entry}: {(utilization * 100):.1f}%')
+                self.print_result(f'     {entry}: {(utilization * 100):.1f}%')
             else:
-                print(f'     {entry}s: {(utilization * 100):.1f}%')
+                self.print_result(f'     {entry}s: {(utilization * 100):.1f}%')
             
 
         # Learning
-        print('\n Learning:')
-        for agent in self.org_network.get_all_agents():
-            info = self.org_network.get_agent(agent)
-            print(f'     {agent}: ')
-            
-            has_learning = False
-            for i, expertise in enumerate(info['expertise']):
-                initial_expertise =  info['initial_expertise'][i]
-                if initial_expertise < expertise:
-                    has_learning = True
-                    print(f'        {self.org_network.knowledge_items[i]}: + {((expertise - initial_expertise) / initial_expertise * 100):.1f}%')
+        if output_learning:
+            self.print_result('\n Learning:')
+            for agent in self.org_network.get_all_agents():
+                info = self.org_network.get_agent(agent)
+                self.print_result(f'     {agent}: ')
                 
-            for i, literacy in enumerate(info['digital_literacy']):
-                initial_literacy = info['initial_digital_literacy'][i]
-                if initial_literacy < literacy:
-                    has_learning = True
-                    print(f'        {self.org_network.digital_literacy_items[i]}: + {((literacy - initial_literacy) / initial_literacy * 100):.1f}%')
+                has_learning = False
+                for i, expertise in enumerate(info['expertise']):
+                    initial_expertise =  info['initial_expertise'][i]
+                    if initial_expertise < expertise:
+                        has_learning = True
+                        self.print_result(f'        {self.org_network.knowledge_items[i]}: + {((expertise - initial_expertise) / initial_expertise * 100):.1f}%')
                     
-            for i, familiarity in enumerate(info['knowledge_base_familiarity']):
-                initial_familiarity = info['initial_knowledge_base_familiarity']
-                if initial_familiarity[i] < familiarity:
-                    has_learning = True
-                    print(f'        {self.org_network.knowledge_bases[i]}: + {((familiarity - initial_familiarity) / initial_familiarity * 100):.1f}%')
-                    
-            if not has_learning:
-                print('        No learning')
+                for i, literacy in enumerate(info['digital_literacy']):
+                    initial_literacy = info['initial_digital_literacy'][i]
+                    if initial_literacy < literacy:
+                        has_learning = True
+                        self.print_result(f'        {self.org_network.digital_literacy_items[i]}: + {((literacy - initial_literacy) / initial_literacy * 100):.1f}%')
+                        
+                for i, familiarity in enumerate(info['knowledge_base_familiarity']):
+                    initial_familiarity = info['initial_knowledge_base_familiarity']
+                    if initial_familiarity[i] < familiarity:
+                        has_learning = True
+                        self.print_result(f'        {self.org_network.knowledge_bases[i]}: + {((familiarity - initial_familiarity) / initial_familiarity * 100):.1f}%')
+                        
+                if not has_learning:
+                    self.print_result('        No learning')
                     
         print('__________________________________________________\n')
         
@@ -1347,247 +1406,262 @@ class PDsim:
             window_size = int(moving_average_plots / step_size)
             return np.convolve(data, np.ones(window_size) / window_size, mode='same')
 
-        # Convert time to weeks
-        time_in_weeks = np.array(self.time_points) / (7 * 24)
-
-        # Create a figure with GridSpec for custom layout
-        fig = plt.figure(figsize=(18, 16))
-        gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 1])
-        plt.subplots_adjust(top=2, bottom=1.9, hspace=0.3)
         
-        
-        # Gantt Chart
-        ax1 = fig.add_subplot(gs[0, 0])
-        
-        # Prepare data for the Gantt chart
-        activity_starts = [(activity, states[1]) for activity, states in self.gantt_tracker.items()]
+        if show_plots:
+            # Convert time to weeks
+            time_in_weeks = np.array(self.time_points) / (7 * 24)
 
-        # Sort activities based on their start index
-        sorted_activities = sorted(activity_starts, key=lambda x: x[1])
-        y_labels = [activity for activity, _ in sorted_activities]
-        y_positions = list(range(len(sorted_activities)))
-        
-        for idx, (activity, _) in enumerate(sorted_activities):
-            states = self.gantt_tracker[activity]
+            # Create a figure with GridSpec for custom layout
+            fig = plt.figure(figsize=(18, 16))
+            gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 1])
+            plt.subplots_adjust(top=2, bottom=1.9, hspace=0.3)
+            
+            
+            # Gantt Chart
+            ax1 = fig.add_subplot(gs[0, 0])
+            
+            # Prepare data for the Gantt chart
+            activity_starts = [(activity, states[1]) for activity, states in self.gantt_tracker.items()]
 
-            for i, (state, timestamp) in enumerate(states):
-                if state in {"In Progress", "Reworking", "Paused"}:
-                    start_time = timestamp / (7 * 24)
-                    end_time = states[i+1][1] / (7 * 24)
+            # Sort activities based on their start index
+            sorted_activities = sorted(activity_starts, key=lambda x: x[1])
+            y_labels = [activity for activity, _ in sorted_activities]
+            y_positions = list(range(len(sorted_activities)))
+            
+            for idx, (activity, _) in enumerate(sorted_activities):
+                states = self.gantt_tracker[activity]
 
-                    if state == "In Progress":
-                        color = 'blue'
-                    elif state == "Reworking":
-                        color = 'red'
-                    elif state == "Paused":
-                        color = 'lightgrey'
+                for i, (state, timestamp) in enumerate(states):
+                    if state in {"In Progress", "Reworking", "Paused"}:
+                        start_time = timestamp / (7 * 24)
+                        end_time = states[i+1][1] / (7 * 24)
 
-                    ax1.barh(idx, end_time - start_time, left=start_time, height=0.4, color=color)
-                    
-        ax1.set_yticks(y_positions)
-        ax1.set_yticklabels(y_labels, fontsize=8)
-        ax1.invert_yaxis()
-        ax1.grid(axis='x', linestyle='--', alpha=0.7)
-        ax1.set_title('Gantt Chart of Activities')
-        ax1.set_xlabel('Time (weeks)', labelpad=0)
-        ax1.set_ylabel('Activities')
-        # legend
-        in_progress_patch = mpatches.Patch(color='blue', label='Work')
-        reworking_patch = mpatches.Patch(color='red', label='Rework')
-        paused_patch = mpatches.Patch(color='lightgrey', label='Paused')
-        ax1.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right')
+                        if state == "In Progress":
+                            color = 'blue'
+                        elif state == "Reworking":
+                            color = 'red'
+                        elif state == "Paused":
+                            color = 'lightgrey'
 
-        # Effort Backlog
-        ax2 = fig.add_subplot(gs[1, 0])
-        for entry, effort_data in effort_backlog.items():
-            if split_plots != 'profession':
-                ax2.plot(time_in_weeks, moving_average(effort_data), label=f'{entry}')
-            else:
-                ax2.plot(time_in_weeks, moving_average(effort_data), label=f'{entry}s')
-        ax2.set_ylabel('Effort Backlog (h)')
-        ax2.set_xlabel('Time (weeks)', labelpad=0)
-        ax2.legend(loc='upper right', bbox_to_anchor=(-0.05, 0), fontsize=9)
-        ax2.grid(True)
-        ax2.set_xlim(left=0)
-        ax2.set_ylim(bottom=0)
-        moving_avrg_string = f'moving average: {round(moving_average_plots / 24, 1)} days'
-        if include_noise_in_results and simulate_noise:
-            moving_avrg_string += '; including noise'
-        ax2.set_title(f'Effort Backlog over Time ({moving_avrg_string})')
+                        ax1.barh(idx, end_time - start_time, left=start_time, height=0.4, color=color)
+                        
+            ax1.set_yticks(y_positions)
+            ax1.set_yticklabels(y_labels, fontsize=8)
+            ax1.invert_yaxis()
+            ax1.grid(axis='x', linestyle='--', alpha=0.7)
+            ax1.set_title('Gantt Chart of Activities')
+            ax1.set_xlabel('Time (weeks)', labelpad=0)
+            ax1.set_ylabel('Activities')
+            # legend
+            in_progress_patch = mpatches.Patch(color='blue', label='Work')
+            reworking_patch = mpatches.Patch(color='red', label='Rework')
+            paused_patch = mpatches.Patch(color='lightgrey', label='Paused')
+            ax1.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right')
 
-
-
-        # Resource Utilization
-        ax3 = fig.add_subplot(gs[2, 0])
-        for entry, util_data in util_over_time.items():
-            if split_plots != 'profession':
-                ax3.plot(time_in_weeks, moving_average(util_data * 100), label=f'{entry}')
-            else:
-                ax3.plot(time_in_weeks, moving_average(util_data * 100), label=f'{entry}s')
-        ax3.set_ylabel('Resource Utilization (%)')
-        ax3.set_xlabel('Time (weeks)', labelpad=0)
-        ax3.grid(True)
-        ax3.set_xlim(left=0)
-        ax3.set_ylim(bottom=0)
-        ax3.set_title(f'Resource Utilization over Time ({moving_avrg_string})')
+            # Effort Backlog
+            ax2 = fig.add_subplot(gs[1, 0])
+            for entry, effort_data in effort_backlog.items():
+                if split_plots != 'profession':
+                    ax2.plot(time_in_weeks, moving_average(effort_data), label=f'{entry}')
+                else:
+                    ax2.plot(time_in_weeks, moving_average(effort_data), label=f'{entry}s')
+            ax2.set_ylabel('Effort Backlog (h)')
+            ax2.set_xlabel('Time (weeks)', labelpad=0)
+            ax2.legend(loc='upper right', bbox_to_anchor=(-0.05, 0), fontsize=9)
+            ax2.grid(True)
+            ax2.set_xlim(left=0)
+            ax2.set_ylim(bottom=0)
+            moving_avrg_string = f'moving average: {round(moving_average_plots / 24, 1)} days'
+            if include_noise_in_results and simulate_noise:
+                moving_avrg_string += '; including noise'
+            ax2.set_title(f'Effort Backlog over Time ({moving_avrg_string})')
 
 
 
-        # Effort Break Down
-        ax4 = fig.add_subplot(gs[0, 1]) 
-        # exclusion of certain states
-        exclude = set()
-        if not include_noise_in_results:
-            exclude.add('Noise')
-        if not include_idle_in_effort_breakdown:
-            exclude.add('Idle')
-        
-        all_states = set(k for v in effort_breakdown.values() for k in v) - exclude
-        categories = list(effort_breakdown.keys())
-        values = {subcategory: [effort_breakdown.get(category, {}).get(subcategory, 0) for category in categories] for subcategory in all_states}
-        
-        x = np.arange(len(categories))  # the label locations
-        width = 0.5 
-        bottom = np.zeros(len(categories))
-        
-        for subcategory in all_states:
-            ax4.bar(
-                x, 
-                values[subcategory], 
-                width, 
-                bottom=bottom, 
-                label=subcategory  # Legend entry for each subcategory
-            )
-            bottom += np.array(values[subcategory])
-        
-        ax4.set_title('Effort Breakdown')
-        ax4.set_xticks(x)
-        if split_plots == 'profession':
-            labels = [category + 's' for category in categories]
-        ax4.set_xticklabels(labels)
-        ax4.set_ylabel('Effort (person-days)')
-        ax4.legend(ncol=3, prop={'size': 8})
+            # Resource Utilization
+            ax3 = fig.add_subplot(gs[2, 0])
+            for entry, util_data in util_over_time.items():
+                if split_plots != 'profession':
+                    ax3.plot(time_in_weeks, moving_average(util_data * 100), label=f'{entry}')
+                else:
+                    ax3.plot(time_in_weeks, moving_average(util_data * 100), label=f'{entry}s')
+            ax3.set_ylabel('Resource Utilization (%)')
+            ax3.set_xlabel('Time (weeks)', labelpad=0)
+            ax3.grid(True)
+            ax3.set_xlim(left=0)
+            ax3.set_ylim(bottom=0)
+            ax3.set_title(f'Resource Utilization over Time ({moving_avrg_string})')
 
 
-        # Component Cost Breakdown
-        ax5 = fig.add_subplot(gs[1, 1])
 
-        # Filter components
-        component_cost_breakdown = {}
-        for element, costs in dev_cost_breakdown.items():
-            if not self.architecture_graph.has_outgoing_hierarchy_edge(element):
-                del costs['Simulation']  # Delete later
-                del costs['Integration']
-                component_cost_breakdown[element] = costs
-
-                # Add cost to parent element
-                parent_element = self.architecture_graph.get_parent(element)
-                if 'Subsystem/Component Development' not in dev_cost_breakdown[parent_element]:
-                    dev_cost_breakdown[parent_element]['Subsystem/Component Development'] = 0
-                total_cost = sum(costs.values())
-                dev_cost_breakdown[parent_element]['Subsystem/Component Development'] += total_cost
-
-        elements = list(component_cost_breakdown.keys())
-        activities = list(next(iter(component_cost_breakdown.values())).keys())
-        x = np.arange(len(elements))
-        width = 0.5  # Adjust width for stacked bars
-
-        # Plot stacked bars
-        bottom = np.zeros(len(elements))
-        for activity in activities:
-            activity_costs = [round(component_cost_breakdown[element][activity] / 1000, 1) for element in elements]
-            bars = ax5.bar(x, activity_costs, width, label=activity, bottom=bottom)
-
-            # Place labels at the center of each bar segment
-            for bar, cost in zip(bars, activity_costs):
-                ax5.text(
-                    bar.get_x() + bar.get_width() / 2, 
-                    bar.get_y() + bar.get_height() / 2, 
-                    f'{cost}', 
-                    ha='center', 
-                    va='center', 
-                    fontsize=8  # Smaller font size
+            # Effort Break Down
+            ax4 = fig.add_subplot(gs[0, 1]) 
+            # exclusion of certain states
+            exclude = set()
+            if not include_noise_in_results:
+                exclude.add('Noise')
+            if not include_idle_in_effort_breakdown:
+                exclude.add('Idle')
+            
+            all_states = set(k for v in effort_breakdown.values() for k in v) - exclude
+            categories = list(effort_breakdown.keys())
+            values = {subcategory: [effort_breakdown.get(category, {}).get(subcategory, 0) for category in categories] for subcategory in all_states}
+            
+            x = np.arange(len(categories))  # the label locations
+            width = 0.5 
+            bottom = np.zeros(len(categories))
+            
+            for subcategory in all_states:
+                ax4.bar(
+                    x, 
+                    values[subcategory], 
+                    width, 
+                    bottom=bottom, 
+                    label=subcategory  # Legend entry for each subcategory
                 )
-            bottom += np.array(activity_costs)
+                bottom += np.array(values[subcategory])
+            
+            ax4.set_title('Effort Breakdown')
+            ax4.set_xticks(x)
+            if split_plots == 'profession':
+                labels = [category + 's' for category in categories]
+            ax4.set_xticklabels(labels)
+            ax4.set_ylabel('Effort (person-days)')
+            ax4.legend(ncol=3, prop={'size': 8})
 
-        ax5.set_title('Component Cost Breakdown')
-        ax5.set_ylabel('Development Cost ($k)')
-        ax5.set_xticks(x)
-        ax5.set_xticklabels(elements)
-        ax5.legend(prop={'size': 8})
 
-        # System Cost Breakdown
-        ax6 = fig.add_subplot(gs[2, 1])
+            # Component Cost Breakdown
+            ax5 = fig.add_subplot(gs[1, 1])
 
-        # Filter elements
-        system_cost_breakdown = {}
-        for element, costs in dev_cost_breakdown.items():
-            if self.architecture_graph.has_outgoing_hierarchy_edge(element):
-                del costs['Simulation']  # Delete later
-                del costs['Design']
-                system_cost_breakdown[element] = costs
+            # Filter components
+            component_cost_breakdown = {}
+            for element, costs in dev_cost_breakdown.items():
+                if not self.architecture_graph.has_outgoing_hierarchy_edge(element):
+                    del costs['Simulation']  # Delete later
+                    del costs['Integration']
+                    component_cost_breakdown[element] = costs
 
-                # Add cost to parent element
-                parent_element = self.architecture_graph.get_parent(element)
-                if parent_element:
+                    # Add cost to parent element
+                    parent_element = self.architecture_graph.get_parent(element)
                     if 'Subsystem/Component Development' not in dev_cost_breakdown[parent_element]:
                         dev_cost_breakdown[parent_element]['Subsystem/Component Development'] = 0
                     total_cost = sum(costs.values())
                     dev_cost_breakdown[parent_element]['Subsystem/Component Development'] += total_cost
 
-        elements = list(system_cost_breakdown.keys())
-        activities = list(next(iter(system_cost_breakdown.values())).keys())
-        x = np.arange(len(elements))
+            elements = list(component_cost_breakdown.keys())
+            activities = list(next(iter(component_cost_breakdown.values())).keys())
+            x = np.arange(len(elements))
+            width = 0.5  # Adjust width for stacked bars
 
-        # Plot stacked bars
-        bottom = np.zeros(len(elements))
-        for activity in activities:
-            activity_costs = [round(system_cost_breakdown[element][activity] / 1000, 1) for element in elements]
-            bars = ax6.bar(x, activity_costs, width, label=activity, bottom=bottom)
+            # Plot stacked bars
+            bottom = np.zeros(len(elements))
+            for activity in activities:
+                activity_costs = [round(component_cost_breakdown[element][activity] / 1000, 1) for element in elements]
+                bars = ax5.bar(x, activity_costs, width, label=activity, bottom=bottom)
 
-            # Place labels at the center of each bar segment
-            for bar, cost in zip(bars, activity_costs):
-                ax6.text(
-                    bar.get_x() + bar.get_width() / 2, 
-                    bar.get_y() + bar.get_height() / 2, 
-                    f'{cost}', 
-                    ha='center', 
-                    va='center', 
-                    fontsize=8  # Smaller font size
-                )
-            bottom += np.array(activity_costs)
+                # Place labels at the center of each bar segment
+                for bar, cost in zip(bars, activity_costs):
+                    ax5.text(
+                        bar.get_x() + bar.get_width() / 2, 
+                        bar.get_y() + bar.get_height() / 2, 
+                        f'{cost}', 
+                        ha='center', 
+                        va='center', 
+                        fontsize=8  # Smaller font size
+                    )
+                bottom += np.array(activity_costs)
 
-        ax6.set_title('System Cost Breakdown')
-        ax6.set_ylabel('Development Cost ($k)')
-        ax6.set_xticks(x)
-        ax6.set_xticklabels(elements)
-        ax6.legend(prop={'size': 8})
-        
-        # Effort over Time
-        # ax[2].plot(time_in_weeks, self.effort_tracker, label='Effort')
-        # ax[2].set_title('Accumulated Effort Over Time')
-        # ax[2].set_ylabel('Effort (person-hours)')
-        # ax[2].set_xlabel('Time (weeks)')
-        # ax[2].grid(True)
-        # ax[2].set_xlim(left=0)
-        # ax[2].set_ylim(bottom=0)
+            ax5.set_title('Component Cost Breakdown')
+            ax5.set_ylabel('Development Cost ($k)')
+            ax5.set_xticks(x)
+            ax5.set_xticklabels(elements)
+            ax5.legend(prop={'size': 8})
 
-        # # Cost over Time
-        # ax[3].plot(time_in_weeks, np.array(self.cost_tracker) / 1000 , label='Cost')
-        # ax[3].plot(time_in_weeks, np.array(self.cost_tracker_with_idle) / 1000, label='Cost including idle time')
-        # ax[3].set_title('Accumulated Cost Over Time')
-        # ax[3].legend(loc='upper left')
-        # ax[3].set_xlabel('Time (weeks)')
-        # ax[3].set_ylabel('Development Cost\n (thousand USD)')
-        # ax[3].grid(True)
-        # ax[3].set_xlim(left=0)
-        # ax[3].set_ylim(bottom=0)
-        
-        self.data_prep_time = time.time() - data_prep_start_time
+            # System Cost Breakdown
+            ax6 = fig.add_subplot(gs[2, 1])
+
+            # Filter elements
+            system_cost_breakdown = {}
+            for element, costs in dev_cost_breakdown.items():
+                if self.architecture_graph.has_outgoing_hierarchy_edge(element):
+                    del costs['Simulation']  # Delete later
+                    del costs['Design']
+                    system_cost_breakdown[element] = costs
+
+                    # Add cost to parent element
+                    parent_element = self.architecture_graph.get_parent(element)
+                    if parent_element:
+                        if 'Subsystem/Component Development' not in dev_cost_breakdown[parent_element]:
+                            dev_cost_breakdown[parent_element]['Subsystem/Component Development'] = 0
+                        total_cost = sum(costs.values())
+                        dev_cost_breakdown[parent_element]['Subsystem/Component Development'] += total_cost
+
+            elements = list(system_cost_breakdown.keys())
+            activities = list(next(iter(system_cost_breakdown.values())).keys())
+            x = np.arange(len(elements))
+
+            # Plot stacked bars
+            bottom = np.zeros(len(elements))
+            for activity in activities:
+                activity_costs = [round(system_cost_breakdown[element][activity] / 1000, 1) for element in elements]
+                bars = ax6.bar(x, activity_costs, width, label=activity, bottom=bottom)
+
+                # Place labels at the center of each bar segment
+                for bar, cost in zip(bars, activity_costs):
+                    ax6.text(
+                        bar.get_x() + bar.get_width() / 2, 
+                        bar.get_y() + bar.get_height() / 2, 
+                        f'{cost}', 
+                        ha='center', 
+                        va='center', 
+                        fontsize=8  # Smaller font size
+                    )
+                bottom += np.array(activity_costs)
+
+            ax6.set_title('System Cost Breakdown')
+            ax6.set_ylabel('Development Cost ($k)')
+            ax6.set_xticks(x)
+            ax6.set_xticklabels(elements)
+            ax6.legend(prop={'size': 8})
+            
+            # Effort over Time
+            # ax[2].plot(time_in_weeks, self.effort_tracker, label='Effort')
+            # ax[2].set_title('Accumulated Effort Over Time')
+            # ax[2].set_ylabel('Effort (person-hours)')
+            # ax[2].set_xlabel('Time (weeks)')
+            # ax[2].grid(True)
+            # ax[2].set_xlim(left=0)
+            # ax[2].set_ylim(bottom=0)
+
+            # # Cost over Time
+            # ax[3].plot(time_in_weeks, np.array(self.cost_tracker) / 1000 , label='Cost')
+            # ax[3].plot(time_in_weeks, np.array(self.cost_tracker_with_idle) / 1000, label='Cost including idle time')
+            # ax[3].set_title('Accumulated Cost Over Time')
+            # ax[3].legend(loc='upper left')
+            # ax[3].set_xlabel('Time (weeks)')
+            # ax[3].set_ylabel('Development Cost\n (thousand USD)')
+            # ax[3].grid(True)
+            # ax[3].set_xlim(left=0)
+            # ax[3].set_ylim(bottom=0)
+            
+            self.print_sim_times()
+            
+            plt.tight_layout()
+            plt.show()
+            
+        else:
+            self.print_sim_times()
+    
+    
+    def print_sim_times(self):
+        self.data_prep_time = time.time() - self.data_prep_start_time
         self.total_time = time.time() -self.init_start_time
         
-        plt.tight_layout()
-        plt.show()
+        print(f'\nInitialization Time: {self.init_time:.2f} s')
+        print(f'Simulation Time:     {self.sim_time:.2f} s')
+        print(f'Data Prep Time:      {self.data_prep_time:.2f} s')
+        print('____________________________')
+        print(f'Total Time:          {self.total_time:.2f} s\n')
 
     
     def calc_cost_breakdown(self):
@@ -1888,7 +1962,8 @@ if __name__ == "__main__":
         sim = PDsim(debug=False, 
                     debug_interval=100, 
                     debug_stop=3697, 
-                    log_events=False, 
+                    log_events=True, 
                     random_seed=42)
+        
         sim.sim_run()
         

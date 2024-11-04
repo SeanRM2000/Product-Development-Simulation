@@ -33,10 +33,10 @@ max_task_effort = 6 # h
 
 # Non-random Task Network Generation
 fully_linear_tasks = False
-task_parallelization = { # Task concurrency to reduce the number of 
+task_parallelization = { # Task concurrency to reduce the number of paths on critical path
     'Definition': 0.5,
     'Design': 0.3,
-    'Testing': 0.1,
+    'Testing': 0,
     'Integration': 0.2
 }
 
