@@ -32,12 +32,16 @@ max_task_effort = 6 # h
 
 
 # Non-random Task Network Generation
-fully_linear_tasks = False
+fully_linear_tasks = False # if True ignores task_parallelization and sets everything to 0
 task_parallelization = { # Task concurrency to reduce the number of paths on critical path
-    'Definition': 0.5,
+    'System_Design': 0.5,
+    'LF_System_Simulation': 0,
     'Design': 0.3,
+    'Component_Simulation': 0,
+    'Virtual_Integration': 0.2,
+    'HF_System_Simulation': 0,
+    'Prototyping': 0,
     'Testing': 0,
-    'Integration': 0.2
 }
 
 # Random Task Network Generation
@@ -45,8 +49,12 @@ reconnect_probability = 0.1
 max_in = 8
 max_out = 5
 overlap_prob = {# Concurrency of tasks of the same activity (Probability to generate a parallel task)
-    'Definition': 0.25,
-    'Design': 0.15,
+    'System_Design': 0.33,
+    'LF_System_Simulation': 0.1,
+    'Design': 0.2,
+    'Component_Simulation': 0.05,
+    'Virtual_Integration': 0.2,
+    'HF_System_Simulation': 0.1,
+    'Prototyping': 0,
     'Testing': 0.05,
-    'Integration': 0.1
 }

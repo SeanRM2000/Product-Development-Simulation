@@ -19,7 +19,14 @@ class OrganizationalGraph:
 
         project_team = list(org_data.values())[0]
         self._recursivly_build_graph(project_team)
+        
+        self.all_agents = sorted([node for node, attr in self.organization.nodes(data=True) if attr['node_type'] == 'Agent'])
+        self.all_teams = sorted([node for node, attr in self.organization.nodes(data=True) if attr['node_type'] == 'Team'])
+        
+        self._aggregate_members_and_subordinates()
         self._aggregate_responsibilities_and_product_knowledge()
+        
+        
 
     def _add_agent(self, data):
         name = data.get('name')
@@ -29,10 +36,9 @@ class OrganizationalGraph:
         if not self.knowledge_items:
             self.knowledge_items = list(knowledge_vector.keys())
         
-        digital_literacy_dict = data.get('digital_literacy')
-        digital_literacy = list(digital_literacy_dict.values())
+        digital_literacy = data.get('digital_literacy')
         if not self.digital_literacy_items:
-            self.digital_literacy_items = list(digital_literacy_dict.keys())
+            self.digital_literacy_items = list(digital_literacy.keys())
 
         familiarity = data.get('knowledge_base_familiarity')
         knowledge_base_familiarity = list(familiarity.values())
@@ -43,6 +49,7 @@ class OrganizationalGraph:
             name,
             node_type='Agent',
             profession=data.get('profession'),
+            subordinates=[],
             expertise=expertise,
             initial_expertise=expertise.copy(),
             product_knowledge={},
@@ -62,6 +69,27 @@ class OrganizationalGraph:
         )
         return name
 
+    def _add_team(self, name):
+        self.organization.add_node(
+            name,
+            node_type='Team',
+            members=[],
+            responsibilities={}
+        )
+        
+    def _add_member(self, data, team, manager):
+        name = self._add_agent(data)
+        self.organization.add_edge(name, team, relation='member_of')
+        self.organization.add_edge(name, manager, relation='reports_to')
+
+    def _add_manager(self, data, team, manager=None):
+        name = self._add_agent(data)
+        self.organization.add_edge(name, team, relation='manages')
+        if manager:
+            self.organization.add_edge(name, manager, relation='reports_to')
+        return name
+
+
     def _recursivly_build_graph(self, team, manager=None):
         team_name = team.get('Team name')
         self._add_team(team_name)
@@ -78,55 +106,36 @@ class OrganizationalGraph:
         
         return team_name
 
-    def _add_member(self, data, team, manager):
-        name = self._add_agent(data)
-        self.organization.add_edge(name, team, relation='member_of')
-        self.organization.add_edge(name, manager, relation='reports_to')
-
-    def _add_manager(self, data, team, manager=None):
-        name = self._add_agent(data)
-        self.organization.add_edge(name, team, relation='manages')
-        if manager:
-            self.organization.add_edge(name, manager, relation='reports_to')
-        return name
-
-    def _add_team(self, name):
-        self.organization.add_node(
-            name,
-            node_type='Team',
-            responsibilities={}
-        )
 
     def _aggregate_responsibilities_and_product_knowledge(self):
         all_architecture_elements = set()
-        for node in nx.topological_sort(self.organization):
-            if self.organization.nodes[node]['node_type'] == 'Team':
-                team_responsibilities = {}
+        for team in self.all_teams:
+            team_responsibilities = {}
 
-                # add all responsibilities of members to team
-                for member in self.get_members(node):
-                    for func, prod in self.organization.nodes[member]['responsibilities'].items():
-                        if func not in team_responsibilities:
-                            team_responsibilities[func] = []
-                        team_responsibilities[func].extend(prod)
-                        for element in prod:
-                            all_architecture_elements.add(element)
+            # add all responsibilities of members to team
+            for member in self.get_members(team):
+                for func, prod in self.organization.nodes[member]['responsibilities'].items():
+                    if func not in team_responsibilities:
+                        team_responsibilities[func] = []
+                    team_responsibilities[func].extend(prod)
+                    for element in prod:
+                        all_architecture_elements.add(element)
 
-                for func in team_responsibilities:
-                    team_responsibilities[func] = list(set(team_responsibilities[func]))
+            for func in team_responsibilities:
+                team_responsibilities[func] = list(set(team_responsibilities[func]))
 
-                self.organization.nodes[node]['responsibilities'] = team_responsibilities
+            self.organization.nodes[team]['responsibilities'] = team_responsibilities
         
         # product knowledge
         product_knowledge = {
             'Req_Knowledge': {},
             'Design_Knowledge': {}
         }
-        for element in all_architecture_elements:
+        for element in sorted(all_architecture_elements):
             product_knowledge['Req_Knowledge'][element] = initial_req_knowledge
             product_knowledge['Design_Knowledge'][element]= inital_design_knowledge
         
-        for member in self.get_all_agents():
+        for member in self.all_agents:
             self.organization.nodes[member]['product_knowledge'] = product_knowledge
 
 
@@ -148,20 +157,21 @@ class OrganizationalGraph:
         plt.title("Organizational Graph (Agents Only)", fontsize=16)
         plt.axis('off')
         plt.show()
-
-
-    def get_all_teams(self):
-        return [node for node, attr in self.organization.nodes(data=True) if attr['node_type'] == 'Team']
-    
-    def get_subordinates(self, manager):
-        return [node for node in self.organization.predecessors(manager) if self.organization.edges[node, manager]['relation'] == 'reports_to']
-
-    def get_members(self, team):
-        return [node for node in self.organization.predecessors(team) if self.organization.nodes[node]['node_type'] == 'Agent']
+        
+        
+    def _aggregate_members_and_subordinates(self):
+        for team in self.all_teams:
+            self.organization.nodes[team]['members'] = sorted([node for node in self.organization.predecessors(team) 
+                                                               if self.organization.nodes[node]['node_type'] == 'Agent'])
+            
+            manager = self.get_manager(team=team)
+            self.organization.nodes[manager]['subordinates'] = sorted([node for node in self.organization.predecessors(manager) 
+                                                                       if self.organization.edges[node, manager]['relation'] == 'reports_to'])
+                
 
     def get_manager(self, agent=None, team=None):
         if agent and team:
-            raise ValueError('Provide either an agent or a team.')
+            raise ValueError('Provide either an agent or a team, not both.')
 
         if agent:
             for predecessor in self.organization.successors(agent):
@@ -175,12 +185,18 @@ class OrganizationalGraph:
 
         return None
     
-    def get_all_agents(self):
-        return [node for node, attr in self.organization.nodes(data=True) if attr['node_type'] == 'Agent']
+    def get_members(self, team):
+        return self.organization.nodes[team]['members']
     
+    def get_subordinates(self, manager):
+        return self.organization.nodes[manager]['subordinates']
     
     def get_agent(self, agent):
         return self.organization.nodes[agent]
+    
+    def get_team(self, agent):
+        return [node for node in self.organization.successors(agent) if self.organization.nodes[node]['node_type'] == 'Team'][0]
+    
     
     def get_common_manager(self, teams):
         # Get the direct managers of each team
@@ -224,21 +240,15 @@ class OrganizationalGraph:
                 return True
             current_manager = self.get_manager(agent=current_manager)
         return False
-    
-    
-    def get_team(self, agent):
-        return [node for node in self.organization.successors(agent) if self.organization.nodes[node]['node_type'] == 'Team'][0]
 
 
 if __name__ == "__main__":
 
     org_graph = OrganizationalGraph(test_data=True)
 
-    # Plot the organization graph
     org_graph.plot_organization()
 
-    # Example usage
-    teams = org_graph.get_all_teams()
+    teams = org_graph.all_teams
     print("Teams:", teams)
 
     for team in teams:
@@ -250,4 +260,4 @@ if __name__ == "__main__":
         
     print(org_graph.get_subordinates('Project Manager'))
     
-    print(org_graph.get_agent('Project Manager'))
+    print(org_graph.get_agent('Systems Engineer 1')['expertise'])

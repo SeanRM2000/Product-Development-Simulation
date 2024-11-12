@@ -11,29 +11,37 @@ inital_design_knowledge = 0.4
 
 ######### Process Settings
 
-# triangle distributions for activity effort calculation
+# triangle distributions for activity effort calculation (h per complexity)
 tri_distribution = {
-    'Definition': [20, 50, 30],
-    'Design': [110, 150, 130],
-    'Integration': [70, 100, 80],
-    'Testing': [80, 100, 90]
+    'System_Design': (8, 15, 12),
+    'LF_System_Simulation': (4, 10, 8),
+    'Design': (70, 100, 80),
+    'Component_Simulation': (20, 40, 35),
+    'Virtual_Integration': (2, 5, 4),
+    'HF_System_Simulation': (3, 5, 4),
+    'Prototyping': (6, 10, 8),
+    'Testing': (5, 9, 7),
 }
 
-# Learning Factors
+# Learning Factors to reduce effort after repeating tasks (Wright model) --> doubling number of repetetions leads to 1-x reduction 
 learning_factors = {
-    'Definition': 0.4,
-    'Design':  0.2,
-    'Integration': 0.1,
-    'Testing': 0
+    'System_Design': 0.6,
+    'LF_System_Simulation': 0.85,
+    'Design': 0.8,
+    'Component_Simulation': 0.85,
+    'Virtual_Integration': 0.6,
+    'HF_System_Simulation': 0.85,
+    'Prototyping': 0.98,
+    'Testing': 0.99,
     }
 
-# Concurrency between activites (0: Sequential, 1: Parallel) 
+# Concurrency to predecessor activites (0: Sequential, 1: Parallel) --> all activities that are not here are sequential
+allow_activity_overlap = False
 activity_overlap = {
-    'def_def': 0.5, 
-    'def_des': 0.5, 
-    'des_test': 0, ### overlapped testing is problamatic with rework
-    'test_int': 0, 
-    'int_test': 0
+    'System_Design': ('creation', 0.5),
+    'Design': ('quantification', 0.5), 
+    'Virtual_Integration': ('quantification', 0.3),
+    'Prototyping': ('quantification', 0)
 } 
 
 

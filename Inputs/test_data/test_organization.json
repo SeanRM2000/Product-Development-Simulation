@@ -13,8 +13,8 @@
       "responsibilities": {},
       "decision_making": ["System"],
       "digital_literacy": {
-        "FunctionalTools": 1,
-        "CollaborativeTools": 3
+        "EngineeringTools": 1,
+        "EngineeringSupportTools": 3
       },
       "knowledge_base_familiarity": {
         "General_KnowledgeBase": 0.8
@@ -35,13 +35,13 @@
             "KnowledgeDomain4": 1.5
           },
           "responsibilities": {
-            "Definition": ["System", "Subsystem1", "Subsystem2"],
-            "Integration": ["System", "Subsystem1", "Subsystem2"]
+            "System_Design": ["System", "Subsystem1", "Subsystem2"],
+            "Virtual_Integration": ["System", "Subsystem1", "Subsystem2"]
           },
           "decision_making": ["Subsystem1", "Subsystem2"],
           "digital_literacy": {
-            "FunctionalTools": 2,
-            "CollaborativeTools": 3
+            "EngineeringTools": 2,
+            "EngineeringSupportTools": 3
           },
           "knowledge_base_familiarity": {
             "General_KnowledgeBase": 0.85
@@ -60,13 +60,13 @@
               "KnowledgeDomain4": 1.2
             },
             "responsibilities": {
-              "Definition": ["System", "Subsystem1", "Component1", "Component2"],
-              "Integration": ["System", "Subsystem1", "Component1", "Component2"]
+              "System_Design": ["System", "Subsystem1"],
+              "Virtual_Integration": ["System", "Subsystem1"]
             },
             "decision_making": ["Subsystem1"],
             "digital_literacy": {
-              "FunctionalTools": 2,
-              "CollaborativeTools": 2
+              "EngineeringTools": 2,
+              "EngineeringSupportTools": 2
             },
             "knowledge_base_familiarity": {
               "General_KnowledgeBase": 0.7
@@ -84,13 +84,13 @@
               "KnowledgeDomain4": 1.8
             },
             "responsibilities": {
-              "Definition": ["Subsystem2", "Component3", "Component4"],
-              "Integration": ["Subsystem2", "Component3", "Component4"]
+              "System_Design": ["Subsystem2"],
+              "Virtual_Integration": ["Subsystem2"]
             },
             "decision_making": ["Subsystem2"],
             "digital_literacy": {
-              "FunctionalTools": 1,
-              "CollaborativeTools": 2
+              "EngineeringTools": 1,
+              "EngineeringSupportTools": 2
             },
             "knowledge_base_familiarity": {
               "General_KnowledgeBase": 0.75
@@ -116,8 +116,8 @@
           },
           "decision_making": ["Subsystem4"],
           "digital_literacy": {
-            "FunctionalTools": 3,
-            "CollaborativeTools": 3
+            "EngineeringTools": 3,
+            "EngineeringSupportTools": 3
           },
           "knowledge_base_familiarity": {
             "General_KnowledgeBase": 0.82
@@ -140,8 +140,8 @@
             },
             "decision_making": ["Component1"],
             "digital_literacy": {
-              "FunctionalTools": 3,
-              "CollaborativeTools": 2
+              "EngineeringTools": 3,
+              "EngineeringSupportTools": 2
             },
             "knowledge_base_familiarity": {
               "General_KnowledgeBase": 0.75
@@ -163,8 +163,8 @@
             },
             "decision_making": ["Component2"],
             "digital_literacy": {
-              "FunctionalTools": 3,
-              "CollaborativeTools": 2
+              "EngineeringTools": 3,
+              "EngineeringSupportTools": 2
             },
             "knowledge_base_familiarity": {
               "General_KnowledgeBase": 0.78
@@ -175,7 +175,83 @@
         ]
       },
       {
-        "Team name": "Testing Team",
+        "Team name": "Simulation Team",
+        "Manager": {
+          "name": "Simulation Manager",
+          "profession": "Manager",
+          "knowledge_vector": {
+            "KnowledgeDomain1": 2.3,
+            "KnowledgeDomain2": 1.8,
+            "KnowledgeDomain3": 2.7,
+            "KnowledgeDomain4": 2.5
+          },
+          "responsibilities": {
+            "LF_System_Simulation": ["System", "Subsystem1"],
+            "HF_System_Simulation": ["System"]
+          },
+          "decision_making": ["Subsystem4"],
+          "digital_literacy": {
+            "EngineeringTools": 3,
+            "EngineeringSupportTools": 3
+          },
+          "knowledge_base_familiarity": {
+            "General_KnowledgeBase": 0.82
+          },
+          "salary": 125000,
+          "availability": 0.88
+        },
+        "Members": [
+          {
+            "name": "Simulation Engineer 1",
+            "profession": "Simulation Engineer",
+            "knowledge_vector": {
+              "KnowledgeDomain1": 2.0,
+              "KnowledgeDomain2": 1.5,
+              "KnowledgeDomain3": 2.2,
+              "KnowledgeDomain4": 1.6
+            },
+            "responsibilities": {
+              "Component_Simulation": ["Component1", "Component2", "Component3", "Component4"]
+            },
+            "decision_making": ["Component1"],
+            "digital_literacy": {
+              "EngineeringTools": 3,
+              "EngineeringSupportTools": 2
+            },
+            "knowledge_base_familiarity": {
+              "General_KnowledgeBase": 0.75
+            },
+            "salary": 85000,
+            "availability": 0.78
+          },
+          {
+            "name": "Simulation Engineer 2",
+            "profession": "Simulation Engineer",
+            "knowledge_vector": {
+              "KnowledgeDomain1": 2.5,
+              "KnowledgeDomain2": 1.2,
+              "KnowledgeDomain3": 2.8,
+              "KnowledgeDomain4": 1.9
+            },
+            "responsibilities": {
+              "LF_System_Simulation": ["Subsystem1", "Subsystem2"],
+              "HF_System_Simulation": ["Subsystem1", "Subsystem2"]
+            },
+            "decision_making": [],
+            "digital_literacy": {
+              "EngineeringTools": 3,
+              "EngineeringSupportTools": 2
+            },
+            "knowledge_base_familiarity": {
+              "General_KnowledgeBase": 0.78
+            },
+            "salary": 87000,
+            "availability": 0.8
+          }
+        ]
+      },
+      {
+        "Team name": "Prototyping and Testing Team",
         "Manager": {
           "name": "Testing Manager",
           "profession": "Manager",
@@ -190,8 +266,8 @@
           },
           "decision_making": [],
           "digital_literacy": {
-            "FunctionalTools": 2,
-            "CollaborativeTools": 3
+            "EngineeringTools": 2,
+            "EngineeringSupportTools": 3
           },
           "knowledge_base_familiarity": {
             "General_KnowledgeBase": 0.85
@@ -214,8 +290,8 @@
             },
             "decision_making": [],
             "digital_literacy": {
-              "FunctionalTools": 2,
-              "CollaborativeTools": 2
+              "EngineeringTools": 2,
+              "EngineeringSupportTools": 2
             },
             "knowledge_base_familiarity": {
               "General_KnowledgeBase": 0.7
@@ -237,8 +313,54 @@
             },
             "decision_making": [],
             "digital_literacy": {
-              "FunctionalTools": 1,
-              "CollaborativeTools": 3
+              "EngineeringTools": 1,
+              "EngineeringSupportTools": 3
+            },
+            "knowledge_base_familiarity": {
+              "General_KnowledgeBase": 0.76
+            },
+            "salary": 82000,
+            "availability": 0.77
+          },
+          {
+            "name": "Prototyping Engineer 1",
+            "profession": "Prototyping Engineer",
+            "knowledge_vector": {
+              "KnowledgeDomain1": 1,
+              "KnowledgeDomain2": 3,
+              "KnowledgeDomain3": 1,
+              "KnowledgeDomain4": 3
+            },
+            "responsibilities": {
+              "Prototyping": ["System", "Subsystem1", "Component3", "Component4"]
+            },
+            "decision_making": [],
+            "digital_literacy": {
+              "EngineeringTools": 1,
+              "EngineeringSupportTools": 3
+            },
+            "knowledge_base_familiarity": {
+              "General_KnowledgeBase": 0.76
+            },
+            "salary": 82000,
+            "availability": 0.77
+          },
+          {
+            "name": "Prototyping Engineer 2",
+            "profession": "Prototyping Engineer",
+            "knowledge_vector": {
+              "KnowledgeDomain1": 2,
+              "KnowledgeDomain2": 1,
+              "KnowledgeDomain3": 3,
+              "KnowledgeDomain4": 1
+            },
+            "responsibilities": {
+              "Prototyping": ["Subsystem2", "Component1", "Component2"]
+            },
+            "decision_making": [],
+            "digital_literacy": {
+              "EngineeringTools": 1,
+              "EngineeringSupportTools": 3
             },
             "knowledge_base_familiarity": {
               "General_KnowledgeBase": 0.76

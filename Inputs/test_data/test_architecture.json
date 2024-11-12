@@ -7,6 +7,7 @@
             "KnowledgeDomain4": 3
         },
         "req_importance": 1,
+        "wait_for_virtual_integration": "full system",
         "children": {
             "Subsystem1": {
                 "knowledge_vector": {
@@ -16,6 +17,7 @@
                     "KnowledgeDomain4": 2
                 },
                 "req_importance": 0.6,
+                "wait_for_virtual_integration": "no",
                 "children": {
                     "Component1": {
                         "knowledge_vector": {
@@ -24,7 +26,8 @@
                             "KnowledgeDomain3": 3,
                             "KnowledgeDomain4": 2
                         },
-                        "req_importance": 0.4
+                        "req_importance": 0.4,
+                        "wait_for_virtual_integration": "no"
                     },
                     "Component2": {
                         "knowledge_vector": {
@@ -33,7 +36,8 @@
                             "KnowledgeDomain3": 2,
                             "KnowledgeDomain4": 3
                         },
-                        "req_importance": 0.2
+                        "req_importance": 0.2,
+                        "wait_for_virtual_integration": "yes"
                     }
                 }
             },
@@ -45,6 +49,7 @@
                     "KnowledgeDomain4": 3
                 },
                 "req_importance": 0.4,
+                "wait_for_virtual_integration": "full system",
                 "children": {
                     "Component3": {
                         "knowledge_vector": {
@@ -53,7 +58,8 @@
                             "KnowledgeDomain3": 2,
                             "KnowledgeDomain4": 3
                         },
-                        "req_importance": 0.3
+                        "req_importance": 0.3,
+                        "wait_for_virtual_integration": "yes"
                     },
                     "Component4": {
                         "knowledge_vector": {
@@ -62,7 +68,8 @@
                             "KnowledgeDomain3": 3,
                             "KnowledgeDomain4": 1
                         },
-                        "req_importance": 0.1
+                        "req_importance": 0.1,
+                        "wait_for_virtual_integration": "yes"
                     }
                 }
             }

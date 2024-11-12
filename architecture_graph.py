@@ -14,39 +14,45 @@ class ArchitectureGraph:
     def __init__(self, test_data=False):
         self.architecture = nx.DiGraph()
         
-        self.load_architecture(test_data)
+        self._load_architecture(test_data)
+        
+        root_nodes = [node for node in self.architecture.nodes() if not self.get_parent(node)]
+        if len(root_nodes) > 1:
+            raise ValueError("Architecture has multiple root nodes.")
+        self.root_node = root_nodes[0]
 
-    def add_element(self, name, knowledge_req, req_importance):
-        technical_complexity = self.calculate_technical_complexity(knowledge_req)
 
-        self.architecture.add_node(name, 
+    def _add_element(self, name, knowledge_req, req_importance, wait_for_virtual_integration):
+        self.architecture.add_node(name,
+                                   wait_for_virtual_integration=wait_for_virtual_integration,
                                    knowledge_req=knowledge_req,
-                                   technical_complexity=technical_complexity,
+                                   overall_complexity=0,
+                                   development_complexity=0,
                                    req_importance=req_importance,
-                                   interfaces=[],
+                                   interfaces={},
                                    completion=0,
-                                   definition_quality=0,
-                                   perceived_definition_quality=0,
-                                   design_quality=0,
-                                   perceived_design_quality=0,
-                                   overall_quality=0,
-                                   perceived_overall_quality=0
+                                   definition_quality=[0],
+                                   perceived_definition_quality=[0],
+                                   design_quality=[0],
+                                   perceived_design_quality=[0],
+                                   overall_quality=[0],
+                                   perceived_overall_quality=[0]
                                    )
 
-    def add_hierarchical_dependency(self, parent, child):
+    def _add_hierarchical_dependency(self, parent, child):
         self.architecture.add_edge(parent, child, dependency_type='hierarchical')
 
-    def add_interface_dependency(self, node1_name, node2_name, n_interfaces):
-        self.architecture.nodes[node1_name]['interfaces'].append(node2_name)
-        interface_complexity = self.calculate_interface_complexity(node1_name, node2_name, n_interfaces)
+    def _add_interface_dependency(self, node1_name, node2_name, interface_severity):
+        interface_complexity = self._calculate_interface_complexity(node1_name, node2_name, interface_severity)
         self.architecture.add_edge(node1_name, node2_name, 
-                    dependency_type='interface', 
-                    interface_types=[],
+                    dependency_type='interface',
                     complexity=interface_complexity,
-                    interface_quality=0
+                    definition_quality=[0],
+                    perceived_definition_quality=[0],
+                    design_quality=[0]
                     )
 
-    def calculate_interface_complexity(self, node1_name, node2_name, n_interfaces):
+    def _calculate_interface_complexity(self, node1_name, node2_name, interface_severity):
         node1 = self.architecture.nodes[node1_name]
         node2 = self.architecture.nodes[node2_name]
 
@@ -60,10 +66,108 @@ class ArchitectureGraph:
         cos_theta = dot_product / (magnitude_node1 * magnitude_node2)
         sin_theta = math.sqrt(1 - cos_theta ** 2)
 
-        return 0.5 * n_interfaces * upper_limit_knowledge_scale ** sin_theta
+        return 0.5 * interface_severity * upper_limit_knowledge_scale ** sin_theta
 
-    def calculate_technical_complexity(self, knowledge_req):
-        return math.sqrt(sum(kri ** 2 for kri in knowledge_req) / len(knowledge_req))
+
+    def _calculate_complexity(self):
+        
+        def calculate_technical_complexity(node):
+            knowledge_req = self.architecture.nodes[node]['knowledge_req']
+            return math.sqrt(sum(kri ** 2 for kri in knowledge_req) / len(knowledge_req))
+        
+        def calc_hierarchical_complexity(node, level=1):
+            children = self.get_hierarchical_children(node)
+            complexity = level * calculate_technical_complexity(node)
+            
+            for child in children:
+                complexity += calc_hierarchical_complexity(child, level+1)
+                
+            return complexity
+        
+        def sum_interface_complexities(node):
+            components = self.get_all_components(node)
+            interface_complexities = 0
+            for component in components:
+                for dep_component in components:
+                    if component != dep_component:
+                        interface_data = self.architecture.get_edge_data(component, dep_component)
+                        if interface_data:
+                            interface_complexities += interface_data['complexity']
+            
+            return interface_complexities
+        
+        
+        for node in self.architecture.nodes():
+            hierarchical_complexity = calc_hierarchical_complexity(node)
+            interface_complexities = sum_interface_complexities(node)
+            self.architecture.nodes[node]['overall_complexity'] = hierarchical_complexity + interface_complexities
+        
+        for node in self.architecture.nodes():
+            overall_complexity = self.architecture.nodes[node]['overall_complexity']
+            irrelevant_complexity = 0
+            for child in self.get_hierarchical_children(node):
+                irrelevant_complexity += self.architecture.nodes[child]['overall_complexity']
+                
+            self.architecture.nodes[node]['development_complexity'] = overall_complexity - irrelevant_complexity
+
+    
+    
+    def _aggregate_interfaces(self):
+        
+        def check_for_interface(node, dep_node):
+            hierarchical_components_node = self.get_all_components(node)
+            hierarchical_components_dep_node = self.get_all_components(dep_node)
+            
+            interfaces = []
+            for component_node in hierarchical_components_node:
+                for component_dep_node in hierarchical_components_dep_node:
+                    if component_node != component_dep_node:
+                        interface_data = self.architecture.get_edge_data(component_node, component_dep_node)
+                        if interface_data:
+                            interfaces.append((component_node, component_dep_node))
+            
+            return interfaces
+        
+        
+        for node in self.architecture.nodes():
+            interfaces = self.architecture.nodes[node]['interfaces']
+
+            for dep_node in self.architecture.nodes():
+                # no pairing of hierarchically dependent elements
+                if dep_node == node or dep_node in self.get_all_ancestors(node) or node in self.get_all_ancestors(dep_node):
+                    continue
+                
+                # no pairing of components with subsystems
+                if ((self.get_hierarchical_children(node) and not self.get_hierarchical_children(dep_node)) or
+                    (self.get_hierarchical_children(dep_node) and not self.get_hierarchical_children(node))):
+                    continue
+                
+                dep_interfaces = check_for_interface(node, dep_node)
+                
+                if dep_interfaces:
+                    for interface in dep_interfaces:
+                        if interface in list(interfaces.values()):
+                            original_node = next((k for k, v in interfaces.items() if v == interface), None)
+                            
+                            # only use the higher level implicit link
+                            if original_node in self.get_all_ancestors(dep_node):
+                                continue
+                            else:
+                                del interfaces[original_node]
+
+                        interfaces[dep_node] = interface
+                 
+    
+    def get_all_components(self, node):
+        children = self.get_hierarchical_children(node)
+        if not children:
+            return [node]
+        
+        leaf_nodes = []
+        for child in children:
+            leaf_nodes.extend(self.get_all_components(child))
+        
+        return leaf_nodes
     
     
     def get_parent(self, node):
@@ -74,11 +178,16 @@ class ArchitectureGraph:
             return None 
         return parents[0]
     
-    def get_all_parents(self, node):
-
+    
+    def get_hierarchical_children(self, node):
+        return [child for child in self.architecture.successors(node) 
+                if self.architecture.edges[node, child].get('dependency_type') == 'hierarchical']
+    
+    
+    def get_all_ancestors(self, node):
         parents = []
         current_node = node
-
+        
         while True:
             parent = self.get_parent(current_node)
             if parent is None:
@@ -87,13 +196,8 @@ class ArchitectureGraph:
             current_node = parent
 
         return parents
-        
-    def has_outgoing_hierarchy_edge(self, node):
-        for neighbor in self.architecture.successors(node):
-            if self.architecture.edges[node, neighbor].get('dependency_type') == 'hierarchical':
-                return True
-        return False
-    
+
+
     def show_architecture(self, show_plot=False):
 
         
@@ -102,7 +206,7 @@ class ArchitectureGraph:
             fig, axes = plt.subplots(1, 2, figsize=(14, 6))
 
             # Interface architecture
-            nodes_to_include = [node for node in self.architecture.nodes() if not self.has_outgoing_hierarchy_edge(node)]
+            nodes_to_include = [node for node in self.architecture.nodes() if not self.get_hierarchical_children(node)]
             
             # colors
             color_map = {}
@@ -132,7 +236,7 @@ class ArchitectureGraph:
                     node_color=[color_map[node] for node in interfaces_graph], 
                     font_size=10, font_color='black', arrows=True)
             axes[1].set_title("Interface architecture")
-            patches = [mpatches.Patch(color=color, label=node) for node, color in color_map.items() if self.has_outgoing_hierarchy_edge(node) and color != '#808080']
+            patches = [mpatches.Patch(color=color, label=node) for node, color in color_map.items() if self.get_hierarchical_children(node) and color != '#808080']
             axes[1].legend(handles=patches, title="Subsystems", loc="best")
             
             # Hierarchical architecture
@@ -160,7 +264,7 @@ class ArchitectureGraph:
     def print_hierarchy(self, node, level=0):
         indent = '    ' * level
         node_data = self.architecture.nodes[node]
-        print(f"{indent}{node} (Technical Complexity: {node_data['technical_complexity']:.2f}, Req. Importance: {node_data['req_importance']})")
+        print(f"{indent}{node} (Overall Complexity: {node_data['overall_complexity']:.2f}, Development Complexity: {node_data['development_complexity']:.2f},  Req. Importance: {node_data['req_importance']})")
 
         # Print interfaces
         interfaces = []
@@ -180,19 +284,20 @@ class ArchitectureGraph:
                 
 
 
-    def load_architecture(self, test_data):
-        def recursivly_build_graph(name, knowledge_req, req_importance, structure=None):
+    def _load_architecture(self, test_data):
+        def recursivly_build_graph(name, knowledge_req, req_importance, wait_for_virtual_integration, structure=None):
             knowledge_req = list(knowledge_req.values())
-            self.add_element(name, knowledge_req, req_importance)
+            self._add_element(name, knowledge_req, req_importance, wait_for_virtual_integration)
 
             if structure:
                 for child_name, child_structure in structure.items():
                     recursivly_build_graph(
                                         child_name, 
                                         knowledge_req=child_structure.get('knowledge_vector'), 
-                                        req_importance=child_structure.get('req_importance'), 
+                                        req_importance=child_structure.get('req_importance'),
+                                        wait_for_virtual_integration=child_structure.get('wait_for_virtual_integration'),
                                         structure=child_structure.get('children'))
-                    self.add_hierarchical_dependency(name, child_name)
+                    self._add_hierarchical_dependency(name, child_name)
 
         # Read data
         dsm_file_path = 'Inputs/test_data/test_dsm.csv' if test_data else 'Inputs/interface_dsm.csv'
@@ -207,6 +312,7 @@ class ArchitectureGraph:
             name=product_name,
             knowledge_req=architecture_data[product_name].get("knowledge_vector"),
             req_importance=architecture_data[product_name].get("req_importance"),
+            wait_for_virtual_integration=architecture_data[product_name].get("wait_for_virtual_integration"),
             structure=architecture_data[product_name].get("children")
         )
 
@@ -215,7 +321,11 @@ class ArchitectureGraph:
             for node_name2 in dsm.columns:
                 n_interfaces = dsm.loc[node_name1, node_name2]
                 if node_name1 != node_name2 and n_interfaces > 0:
-                    self.add_interface_dependency(node_name1, node_name2, n_interfaces)
+                    self._add_interface_dependency(node_name1, node_name2, n_interfaces)
+
+        self._aggregate_interfaces()
+        
+        self._calculate_complexity()
                 
 
 
@@ -224,3 +334,6 @@ if __name__ == "__main__":
     architecture_graph = ArchitectureGraph(test_data=True)
 
     architecture_graph.show_architecture(show_plot=True)
+    
+    for node, data in architecture_graph.architecture.nodes(data=True):
+        print(node, ': ', data['interfaces'])

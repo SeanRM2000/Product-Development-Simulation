@@ -12,7 +12,6 @@ step_size = 0.1 # h
 
 
 # Monte Carlo
-perform_montecarlo = False
 max_sim_runs = 100
 check_stability = True
 stability_criteria = 0.01 # % 
@@ -21,12 +20,13 @@ stability_interval = 25
 
 # For plotting and results
 output_learning = False
-show_plots = False
+show_plots = True
 summarize_gantt_chart = True ####### not yet implemented
 use_moving_average = True
 moving_average_plots = 168 # h
 include_noise_in_results = True
+include_noise_in_effort_breakdown = False
 include_idle_in_effort_breakdown = False
-split_plots = 'profession' # overall, profession, teams
+split_plots = 'teams' # overall, profession, teams
 
 
