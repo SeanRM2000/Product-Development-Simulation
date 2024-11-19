@@ -7,7 +7,7 @@
             "interoperability": 0.8,
             "productivity": 0.7,
             "use_complexity": 1.5,
-            "certainty": null,
+            "accuracy": null,
             "cost_per_hour": 0.1
         }
     },
@@ -19,7 +19,7 @@
             "interoperability": 0.9,
             "productivity": 0.8,
             "use_complexity": 2.2,
-            "certainty": 0.5,
+            "accuracy": 0.5,
             "cost_per_hour": 5
         }
     },
@@ -31,7 +31,7 @@
             "interoperability": 0.8,
             "productivity": 0.85,
             "use_complexity": 2.5,
-            "certainty": null,
+            "accuracy": null,
             "cost_per_hour": 1.5
         }
     },
@@ -43,7 +43,7 @@
             "interoperability": 0.2,
             "productivity": 0.9,
             "use_complexity": 1,
-            "certainty": null,
+            "accuracy": null,
             "cost_per_hour": 0.5
         }
     },
@@ -55,7 +55,7 @@
             "interoperability": 0.6,
             "productivity": 0.75,
             "use_complexity": 2,
-            "certainty": 0.65,
+            "accuracy": 0.65,
             "cost_per_hour": 20
         }
     },
@@ -65,7 +65,7 @@
         "mapped_elements": ["Component1", "Component2", "Component3", "Component4"],
         "parameters": {
             "productivity": 0.75,
-            "certainty": 0.8,
+            "accuracy": 0.8,
             "availability": 0.1,
             "cost_per_hour": 200
         }
@@ -76,7 +76,7 @@
         "mapped_elements": ["System", "Subsystem1", "Subsystem2", "Component1", "Component2", "Component3", "Component4"],
         "parameters": {
             "productivity": 0.75,
-            "certainty": null,
+            "accuracy": null,
             "availability": 0.2,
             "cost_per_hour": 100
         }
@@ -89,7 +89,7 @@
             "interoperability": 0.85,
             "productivity": 0.75,
             "use_complexity": 2,
-            "certainty": null,
+            "accuracy": null,
             "cost_per_hour": 3    
         }
     },
@@ -99,9 +99,21 @@
         "mapped_elements": ["System", "Subsystem1", "Subsystem2"],
         "parameters": {
             "productivity": 0.75,
-            "certainty": 0.9,
+            "accuracy": 0.9,
             "availability": 0.2,
             "cost_per_hour": 1000
+        }
+    },
+    "KnowledgeBase": {
+        "type": "knowledgebase",
+        "parameters": {
+            "completeness": [
+                [1.0, 0.5, 0.4],
+                [0.8, 0.2, 0.1],
+                [0.6, 0.6, 0.3],
+                [0.9, 0.5, 0.2]
+            ],
+            "product_knowledge": []
         }
     }
 }

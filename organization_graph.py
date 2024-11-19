@@ -2,17 +2,19 @@ import networkx as nx
 import json
 import matplotlib.pyplot as plt
 
+from architecture_graph import ArchitectureGraph
+
 from Inputs.sim_inputs import *
 
 class OrganizationalGraph:
-    def __init__(self, test_data=False):
+    def __init__(self, architecture:ArchitectureGraph, folder=None):
         self.organization = nx.DiGraph()
 
-        file_path = 'Inputs/test_data/test_organization.json' if test_data else 'Inputs/organization.json'
+        file_path = (folder + '/organization.json') if folder else 'Inputs/test_data/test_organization.json'
 
         with open(file_path, 'r') as file:
             org_data = json.load(file)
-            
+        
         self.knowledge_items = []
         self.digital_literacy_items = []
         self.knowledge_bases = []
@@ -24,7 +26,7 @@ class OrganizationalGraph:
         self.all_teams = sorted([node for node, attr in self.organization.nodes(data=True) if attr['node_type'] == 'Team'])
         
         self._aggregate_members_and_subordinates()
-        self._aggregate_responsibilities_and_product_knowledge()
+        self._aggregate_responsibilities_and_product_knowledge(architecture.architecture)
         
         
 
@@ -53,6 +55,7 @@ class OrganizationalGraph:
             expertise=expertise,
             initial_expertise=expertise.copy(),
             product_knowledge={},
+            experience=data.get('experience'),
             digital_literacy=digital_literacy,
             initial_digital_literacy=digital_literacy.copy(),
             knowledge_base_familiarity=knowledge_base_familiarity,
@@ -100,14 +103,13 @@ class OrganizationalGraph:
             for subteam in team.get('Subteams'):
                 sub_team_name = self._recursivly_build_graph(subteam, manager_name)
                 self.organization.add_edge(sub_team_name, team_name, relation='part_of')
-        else:
-            for member in team.get('Members'):
-                self._add_member(member, team_name, manager_name)
+        for member in team.get('Members'):
+            self._add_member(member, team_name, manager_name)
         
         return team_name
 
 
-    def _aggregate_responsibilities_and_product_knowledge(self):
+    def _aggregate_responsibilities_and_product_knowledge(self, architecture):
         all_architecture_elements = set()
         for team in self.all_teams:
             team_responsibilities = {}
@@ -128,15 +130,20 @@ class OrganizationalGraph:
         
         # product knowledge
         product_knowledge = {
-            'Req_Knowledge': {},
-            'Design_Knowledge': {}
+            'Reqs': {},
+            'Design': {}
         }
         for element in sorted(all_architecture_elements):
-            product_knowledge['Req_Knowledge'][element] = initial_req_knowledge
-            product_knowledge['Design_Knowledge'][element]= inital_design_knowledge
+            product_knowledge['Reqs'][element] = architecture.nodes[element]['novelty']
+            product_knowledge['Design'][element] = architecture.nodes[element]['novelty']
         
         for member in self.all_agents:
-            self.organization.nodes[member]['product_knowledge'] = product_knowledge
+            self.get_agent(member)['product_knowledge']['Reqs'] = {}
+            self.get_agent(member)['product_knowledge']['Design'] = {}
+            experience = self.get_agent(member)['experience']
+            for element in all_architecture_elements:
+                self.get_agent(member)['product_knowledge']['Reqs'][element] = product_knowledge['Reqs'][element] * experience
+                self.get_agent(member)['product_knowledge']['Design'][element] = product_knowledge['Design'][element] * experience
 
 
     def plot_organization(self):
@@ -243,8 +250,10 @@ class OrganizationalGraph:
 
 
 if __name__ == "__main__":
-
-    org_graph = OrganizationalGraph(test_data=True)
+    folder = 'Architecture/Inputs/Baseline'
+    architecture = ArchitectureGraph(folder=folder)
+    
+    org_graph = OrganizationalGraph(architecture, folder=folder)
 
     org_graph.plot_organization()
 
@@ -260,4 +269,4 @@ if __name__ == "__main__":
         
     print(org_graph.get_subordinates('Project Manager'))
     
-    print(org_graph.get_agent('Systems Engineer 1')['expertise'])
+    print(org_graph.get_agent('Systems Engineer 1')['product_knowledge'])

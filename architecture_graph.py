@@ -11,10 +11,10 @@ from Inputs.tuning_params import *
 from Inputs.sim_inputs import *
 
 class ArchitectureGraph:
-    def __init__(self, test_data=False):
+    def __init__(self, folder=None):
         self.architecture = nx.DiGraph()
         
-        self._load_architecture(test_data)
+        self._load_architecture(folder)
         
         root_nodes = [node for node in self.architecture.nodes() if not self.get_parent(node)]
         if len(root_nodes) > 1:
@@ -22,21 +22,25 @@ class ArchitectureGraph:
         self.root_node = root_nodes[0]
 
 
-    def _add_element(self, name, knowledge_req, req_importance, wait_for_virtual_integration):
+    def _add_element(self, name, knowledge_req, req_importance, novelty, prototype_start_condition):
         self.architecture.add_node(name,
-                                   wait_for_virtual_integration=wait_for_virtual_integration,
+                                   prototype_start_condition=prototype_start_condition,
+                                   
                                    knowledge_req=knowledge_req,
                                    overall_complexity=0,
                                    development_complexity=0,
                                    req_importance=req_importance,
+                                   novelty=novelty,
+                                   
                                    interfaces={},
+                                   
                                    completion=0,
-                                   definition_quality=[0],
-                                   perceived_definition_quality=[0],
-                                   design_quality=[0],
-                                   perceived_design_quality=[0],
-                                   overall_quality=[0],
-                                   perceived_overall_quality=[0]
+                                   definition_quality=[None],
+                                   perceived_definition_quality=[None],
+                                   design_quality=[None],
+                                   perceived_design_quality=[None],
+                                   overall_quality=[None],
+                                   perceived_overall_quality=[None]
                                    )
 
     def _add_hierarchical_dependency(self, parent, child):
@@ -46,10 +50,11 @@ class ArchitectureGraph:
         interface_complexity = self._calculate_interface_complexity(node1_name, node2_name, interface_severity)
         self.architecture.add_edge(node1_name, node2_name, 
                     dependency_type='interface',
-                    complexity=interface_complexity,
-                    definition_quality=[0],
-                    perceived_definition_quality=[0],
-                    design_quality=[0]
+                    severity=interface_severity,
+                    complexity=round(interface_complexity, 4),
+                    definition_quality=[None],
+                    perceived_definition_quality=[None],            ######################### might not be needed
+                    design_quality=[None]
                     )
 
     def _calculate_interface_complexity(self, node1_name, node2_name, interface_severity):
@@ -66,7 +71,7 @@ class ArchitectureGraph:
         cos_theta = dot_product / (magnitude_node1 * magnitude_node2)
         sin_theta = math.sqrt(1 - cos_theta ** 2)
 
-        return 0.5 * interface_severity * upper_limit_knowledge_scale ** sin_theta
+        return 0.5 * interface_severity / upper_interface_severity_limit * upper_limit_knowledge_scale ** sin_theta
 
 
     def _calculate_complexity(self):
@@ -100,15 +105,23 @@ class ArchitectureGraph:
         for node in self.architecture.nodes():
             hierarchical_complexity = calc_hierarchical_complexity(node)
             interface_complexities = sum_interface_complexities(node)
-            self.architecture.nodes[node]['overall_complexity'] = hierarchical_complexity + interface_complexities
+            self.architecture.nodes[node]['overall_complexity'] = round(hierarchical_complexity + interface_complexities, 4)
         
         for node in self.architecture.nodes():
-            overall_complexity = self.architecture.nodes[node]['overall_complexity']
-            irrelevant_complexity = 0
-            for child in self.get_hierarchical_children(node):
-                irrelevant_complexity += self.architecture.nodes[child]['overall_complexity']
+            technical_complexity = calculate_technical_complexity(node)
+            
+            children = self.get_hierarchical_children(node)
+            
+            child_complexities = 0
+            for child in children:
+                child_complexities += calculate_technical_complexity(child)
+                interfaces = self.architecture.nodes[child]['interfaces']
+                for dep_node, edges in interfaces.items():
+                    for edge in edges:
+                        if dep_node in children:
+                            child_complexities += self.architecture.edges[edge]['complexity']
                 
-            self.architecture.nodes[node]['development_complexity'] = overall_complexity - irrelevant_complexity
+            self.architecture.nodes[node]['development_complexity'] = round(technical_complexity + child_complexities, 4)
 
     
     
@@ -155,7 +168,9 @@ class ArchitectureGraph:
                             else:
                                 del interfaces[original_node]
 
-                        interfaces[dep_node] = interface
+                        if not interfaces.get(dep_node):
+                            interfaces[dep_node] = []
+                        interfaces[dep_node].append(interface)
                  
     
     def get_all_components(self, node):
@@ -169,6 +184,15 @@ class ArchitectureGraph:
         
         return leaf_nodes
     
+    def get_all_hierarchical_descendants(self, node):
+        descendants = []
+        children = self.get_hierarchical_children(node)
+        
+        for child in children:
+            descendants.append(child)
+            descendants.extend(self.get_all_hierarchical_descendants(child))
+    
+        return descendants
     
     def get_parent(self, node):
         parents = [predecessor for predecessor in self.architecture.predecessors(node) if self.architecture.edges[predecessor, node].get('dependency_type') == 'hierarchical']
@@ -180,7 +204,7 @@ class ArchitectureGraph:
     
     
     def get_hierarchical_children(self, node):
-        return [child for child in self.architecture.successors(node) 
+        return [child for child in sorted(self.architecture.successors(node))
                 if self.architecture.edges[node, child].get('dependency_type') == 'hierarchical']
     
     
@@ -231,10 +255,16 @@ class ArchitectureGraph:
                     color_map[node] = "#808080"  # Gray
             
             interfaces_graph = self.architecture.subgraph(nodes_to_include)
-            pos_interface = nx.kamada_kawai_layout(interfaces_graph)
+            
+            pos_interface = nx.spring_layout(interfaces_graph, weight='severity') # alternativ kadam kawai with different thicknesses
             nx.draw(interfaces_graph, pos_interface, ax=axes[1], with_labels=True, node_size=500, 
                     node_color=[color_map[node] for node in interfaces_graph], 
                     font_size=10, font_color='black', arrows=True)
+            
+            edge_complexities = nx.get_edge_attributes(interfaces_graph, 'severity')
+            nx.draw_networkx_edge_labels(interfaces_graph, pos_interface, ax=axes[1], 
+                                         edge_labels=edge_complexities, font_size=8)
+        
             axes[1].set_title("Interface architecture")
             patches = [mpatches.Patch(color=color, label=node) for node, color in color_map.items() if self.get_hierarchical_children(node) and color != '#808080']
             axes[1].legend(handles=patches, title="Subsystems", loc="best")
@@ -284,10 +314,10 @@ class ArchitectureGraph:
                 
 
 
-    def _load_architecture(self, test_data):
-        def recursivly_build_graph(name, knowledge_req, req_importance, wait_for_virtual_integration, structure=None):
+    def _load_architecture(self, folder):
+        def recursivly_build_graph(name, knowledge_req, req_importance, novelty, prototype_start_condition, structure=None):
             knowledge_req = list(knowledge_req.values())
-            self._add_element(name, knowledge_req, req_importance, wait_for_virtual_integration)
+            self._add_element(name, knowledge_req, req_importance, novelty, prototype_start_condition)
 
             if structure:
                 for child_name, child_structure in structure.items():
@@ -295,13 +325,17 @@ class ArchitectureGraph:
                                         child_name, 
                                         knowledge_req=child_structure.get('knowledge_vector'), 
                                         req_importance=child_structure.get('req_importance'),
-                                        wait_for_virtual_integration=child_structure.get('wait_for_virtual_integration'),
+                                        novelty=child_structure.get('novelty'),
+                                        prototype_start_condition=child_structure.get('prototype_start_condition'),
                                         structure=child_structure.get('children'))
                     self._add_hierarchical_dependency(name, child_name)
 
         # Read data
-        dsm_file_path = 'Inputs/test_data/test_dsm.csv' if test_data else 'Inputs/interface_dsm.csv'
-        achritecture_file_path = 'Inputs/test_data/test_architecture.json' if test_data else 'Inputs/drone_architecture.json'
+        if folder and 'Architecture/Inputs/' in folder: # use product folder if data is from architecture
+            folder='Architecture/Inputs/Product'
+
+        dsm_file_path = (folder + '/interface_dsm.csv') if folder else 'Inputs/test_data/test_dsm.csv'
+        achritecture_file_path = (folder + '/architecture.json') if folder else 'Inputs/test_data/test_architecture.json'
         
         with open(achritecture_file_path, 'r') as file:
             architecture_data = json.load(file)
@@ -312,7 +346,8 @@ class ArchitectureGraph:
             name=product_name,
             knowledge_req=architecture_data[product_name].get("knowledge_vector"),
             req_importance=architecture_data[product_name].get("req_importance"),
-            wait_for_virtual_integration=architecture_data[product_name].get("wait_for_virtual_integration"),
+            novelty=architecture_data[product_name].get("novelty"),
+            prototype_start_condition=architecture_data[product_name].get("prototype_start_condition"),
             structure=architecture_data[product_name].get("children")
         )
 
@@ -331,7 +366,8 @@ class ArchitectureGraph:
 
 
 if __name__ == "__main__":
-    architecture_graph = ArchitectureGraph(test_data=True)
+    folder = 'Architecture/Inputs/Baseline'
+    architecture_graph = ArchitectureGraph(folder=folder)
 
     architecture_graph.show_architecture(show_plot=True)
     

@@ -1,7 +1,7 @@
 
 # Upper limit of knowledge scale
 upper_limit_knowledge_scale = 3
-
+upper_interface_severity_limit = 9
 
 
 ######### Knowledge
@@ -14,6 +14,21 @@ use_knowledge_weight = True
 consultation_effectiveness = 0.4 # complexity per hour
 knowledge_retention_expert_consultation = 0.1 # %
 knowledge_retention_knowledge_base = 0.05 # %
+
+consultation_effort_min = 0.5 # h
+consultation_effort_max = 1.5 # h
+importance_reduction_factor_for_external_expert = 0.2 # lowers importance for experts that are not in own team
+
+
+# Knowledge Base Latency (worst case, most likely, best case)
+knowledge_base_latency_wc = 1 # h
+knowledge_base_latency_ml = 0.5 # h
+knowledge_base_latency_bc = 0.2 # h
+
+
+# Assignment time (Managers)
+assignment_time_min = 0.1 # h
+assignment_time_max = 0.5 # h
 
 
 

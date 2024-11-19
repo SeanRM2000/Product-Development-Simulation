@@ -1,7 +1,8 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
-import numpy as np
+import numpy as np#
+import json
 
 from architecture_graph import ArchitectureGraph
 from tools import Tools
@@ -11,16 +12,21 @@ from Inputs.sim_inputs import *
 from Inputs.sim_settings import *
 
 class ActivityNetwork:
-    def __init__(self, architecture_graph: ArchitectureGraph, tools: Tools, random_seed=None):
+    def __init__(self, architecture_graph: ArchitectureGraph, tools: Tools, folder=None, random_seed=None):
         self.architecture_graph = architecture_graph
         self.tools = tools
         self.activity_graph = nx.DiGraph()
+        
+        file_path = (folder + '/activities.json') if folder else 'Inputs/test_data/test_activities.json'
+        
+        with open(file_path, 'r') as file:
+            activity_data = json.load(file)
         
         if random_seed:
             random.seed(random_seed)
             np.random.seed(random_seed)
 
-        self.generate_activity_graph()
+        self._generate_activity_graph(activity_data)
         
         reduced_graph = nx.transitive_reduction(self.activity_graph)
         
@@ -42,12 +48,17 @@ class ActivityNetwork:
     def generate_activity_name(self, node, activity_type):
         return f"{node}_{activity_type}"
 
-    def add_activity(self, node_name, activity_type, dependencies=None):
+    def _add_activity(self, node_name, activity_type, activity_data, dependencies=None):
         activity_name = self.generate_activity_name(node_name, activity_type)
         
         complexity = self.architecture_graph.architecture.nodes[node_name]['development_complexity']
-        distribution = tri_distribution[activity_type]
+        distribution = activity_data['tri_distribution'] # h per complexity
+        learning_rate = activity_data['learning_rate'] # reduce effort after repeating tasks (Wright model) --> doubling number of repetetions leads to 1-x reduction 
         effort = round(complexity * random.triangular(distribution[0], distribution[1], distribution[2]), 4)
+        
+        if activity_type in {'Prototyping', 'Testing'}:
+            if not self.architecture_graph.get_hierarchical_children(node_name):
+                effort *= component_effort_increase_factor
         
         tool = self.check_for_tool(node_name, activity_type)
         if not tool:
@@ -57,6 +68,7 @@ class ActivityNetwork:
                                      activity_type=activity_type, 
                                      architecture_element=node_name,
                                      effort=effort,
+                                     learning_rate=learning_rate,
                                      num_tasks=0,
                                      tasks=[],
                                      tool=tool,
@@ -70,7 +82,11 @@ class ActivityNetwork:
                 dependencies = [dependencies] 
             for dependency in dependencies:
                 if allow_activity_overlap:
-                    overlap = activity_overlap.get(activity_type, (0, 0))[1]
+                    overlap_data = activity_data.get('activity_overlap')
+                    if overlap_data:
+                        overlap = overlap_data['value']
+                    else:
+                        overlap = 0
                 else:
                     overlap = 0
                 self.activity_graph.add_edge(dependency, activity_name, 
@@ -83,11 +99,13 @@ class ActivityNetwork:
         tool = self.tools.get_tools(node, activity)
         if len(tool) > 1:
             raise ValueError(f'Multiple tools assigned to activity and element combination: {activity}, {node}')
+        elif len(tool) == 0:
+            return None
         else:
             return tool[0]
 
 
-    def generate_activity_graph(self):
+    def _generate_activity_graph(self, activity_data):
         
         def check_quantification_activity(predecessor_activity_type, node):
             quantification_activity_mapping = {
@@ -102,18 +120,21 @@ class ActivityNetwork:
                 return quantification_activity_type
             else:
                 if node == root_node and quantification_activity_type == 'Testing':
-                    raise ValueError('No overall Product/System testing activity exists')
+                    raise ValueError('No overall Product/System testing activity could be created becasue the tool is missing.')
                 else:
                     return None
         
         def add_activity_according_to_overlap(node, activity_type, quant_activity, predecessor_activities):
             if allow_activity_overlap:
-                if quant_activity and activity_overlap[activity_type][0] == 'quantification':
+                if quant_activity and activity_data[activity_type]['activity_overlap']['to']== 'quantification':
                     stack.append((node, activity_type, quant_activity))
                 else:
                     stack.append((node, activity_type, predecessor_activities))
             else:
-                stack.append((node, activity_type, quant_activity))
+                if quant_activity:
+                    stack.append((node, activity_type, quant_activity))
+                else:
+                    stack.append((node, activity_type, predecessor_activities))
             
 
         # first activity
@@ -125,12 +146,12 @@ class ActivityNetwork:
         while stack:
             node, activity_type, predecessor_activities = stack.pop(0)
             
-            current_activity = self.add_activity(node, activity_type, predecessor_activities)
+            current_activity = self._add_activity(node, activity_type, activity_data[activity_type], predecessor_activities)
             
             # create corresponsing quantification activity if the tool for that activity exists
             quant_activity_type = check_quantification_activity(activity_type, node)
             if quant_activity_type:
-                quant_activity = self.add_activity(node, quant_activity_type, current_activity)
+                quant_activity = self._add_activity(node, quant_activity_type, activity_data[quant_activity_type], current_activity)
             else:
                 quant_activity = None
             
@@ -146,6 +167,9 @@ class ActivityNetwork:
                 
                 
                 case 'Design':
+                    if self.architecture_graph.architecture.nodes[node].get('procure'):    ############################################ implement make or buy
+                        pass
+                    
                     add_activity_according_to_overlap(node, 'Prototyping', quant_activity, current_activity)
                 
                     parent = self.architecture_graph.get_parent(node)
@@ -179,15 +203,17 @@ class ActivityNetwork:
             
         
         def check_integration_of_higher_levels(parent):
+            higher_level_element = []
             activity = self.generate_activity_name(parent, 'Virtual_Integration')
+            
             if self.activity_graph.nodes.get(activity):
-                return activity
+                higher_level_element.append(activity)
             else:
                 new_parent = self.architecture_graph.get_parent(parent)
                 if new_parent:
-                    return check_integration_of_higher_levels(new_parent)
-                else:
-                    return None
+                    higher_level_element.extend(check_integration_of_higher_levels(new_parent))
+                    
+            return higher_level_element
             
             
         for node, data in self.activity_graph.nodes(data=True):
@@ -195,36 +221,39 @@ class ActivityNetwork:
                 element = data['architecture_element']
                 
                 if allow_activity_overlap:
-                    overlap_with_virtual_integration = self.architecture_graph.architecture.nodes[element]['wait_for_virtual_integration']
+                    prototype_start_condition = self.architecture_graph.architecture.nodes[element]['prototype_start_condition']
                 else:
-                    overlap_with_virtual_integration = 'full system'
+                    prototype_start_condition = 'Full Virtual Integration'
                 
-                match overlap_with_virtual_integration:
+                match prototype_start_condition:
                     
-                    case 'full system':
+                    case 'Full Virtual Integration':
                         virtual_full_system_integration = self.generate_activity_name(root_node, 'Virtual_Integration')
                         if self.activity_graph.nodes.get(virtual_full_system_integration):
                             predecessors = [virtual_full_system_integration]
                         else:
                             predecessors = check_children_recursivly(root_node)
                               
-                    case 'yes':
+                    case 'Higher Level Virtual Integration':
                         element = self.activity_graph.nodes[node]['architecture_element']
                         parent = self.architecture_graph.get_parent(element)       
-                        predecessors = [check_integration_of_higher_levels(parent)]
+                        predecessors = check_integration_of_higher_levels(parent)
                         if not predecessors:
-                            predecessors = check_children_recursivly(node)
+                            predecessors = check_children_recursivly(element)
                             
-                    case 'no':
+                    case 'Lower Level Virtual Integration':
+                        #predecessors = check_children_recursivly(element)
+                        predecessor = []
+                            
+                    case 'Component Development':
                         predecessors = [] # no virtual integration activity is a predecessor
                     
                     case _:
-                        raise ValueError('Variable \'wait_for_virtual_integration\' in architecture has to be "full system", "yes", or "no".')
-                    
+                        raise ValueError('Variable for \'prototype_start_condition\' in architecture has to be "Full Virtual Integration", "Higher Level Virtual Integration", "Lower Level Virtual Integration", or "Component Development".')
                     
                 for predecessor in predecessors:
                     # check if quantification activity has to be used
-                    if activity_overlap['Prototyping'][0] == 'quantification' or not allow_activity_overlap:
+                    if activity_data['Prototyping']['activity_overlap']['to'] == 'quantification' or not allow_activity_overlap:
                         quant_activity = [s for s in self.activity_graph.successors(predecessor) 
                                           if self.activity_graph.nodes[s].get('activity_type') in {'Component_Simulation', 'HF_System_Simulation'}]
                         if len(quant_activity) > 1:
@@ -233,7 +262,7 @@ class ActivityNetwork:
                             predecessor = quant_activity[0]
                     
                     if allow_activity_overlap:
-                        overlap = activity_overlap.get('Prototyping')[1]
+                        overlap = activity_data['Prototyping']['activity_overlap']['value']
                     else:
                         overlap = 0 
                     
@@ -283,8 +312,10 @@ class ActivityNetwork:
 
 
 if __name__ == "__main__":
-    architecture_graph = ArchitectureGraph(test_data=True)
-    tools = Tools(test_data=True)
+    folder = 'Architecture/Inputs/Baseline'
+    
+    architecture_graph = ArchitectureGraph(folder=folder)
+    tools = Tools(folder=folder)
 
-    activity_graph = ActivityNetwork(architecture_graph, tools, random_seed=42)
+    activity_graph = ActivityNetwork(architecture_graph, tools, folder=folder, random_seed=42)
     activity_graph.show_activity_graph()

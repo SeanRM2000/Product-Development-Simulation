@@ -10,6 +10,7 @@
         "KnowledgeDomain3": 1,
         "KnowledgeDomain4": 1
       },
+      "experience": 0.8,
       "responsibilities": {},
       "decision_making": ["System"],
       "digital_literacy": {
@@ -34,6 +35,7 @@
             "KnowledgeDomain3": 2.0,
             "KnowledgeDomain4": 1.5
           },
+          "experience": 0.9,
           "responsibilities": {
             "System_Design": ["System", "Subsystem1", "Subsystem2"],
             "Virtual_Integration": ["System", "Subsystem1", "Subsystem2"]
@@ -59,6 +61,7 @@
               "KnowledgeDomain3": 1.8,
               "KnowledgeDomain4": 1.2
             },
+            "experience": 0.5,
             "responsibilities": {
               "System_Design": ["System", "Subsystem1"],
               "Virtual_Integration": ["System", "Subsystem1"]
@@ -83,6 +86,7 @@
               "KnowledgeDomain3": 2.2,
               "KnowledgeDomain4": 1.8
             },
+            "experience": 0.4,
             "responsibilities": {
               "System_Design": ["Subsystem2"],
               "Virtual_Integration": ["Subsystem2"]
@@ -111,6 +115,7 @@
             "KnowledgeDomain3": 2.7,
             "KnowledgeDomain4": 2.5
           },
+          "experience": 0.5,
           "responsibilities": {
             "Design": ["Component1"]
           },
@@ -135,6 +140,7 @@
               "KnowledgeDomain3": 2.2,
               "KnowledgeDomain4": 1.6
             },
+            "experience": 0.8,
             "responsibilities": {
               "Design": ["Component1", "Component2"]
             },
@@ -158,6 +164,7 @@
               "KnowledgeDomain3": 2.8,
               "KnowledgeDomain4": 1.9
             },
+            "experience": 0.2,
             "responsibilities": {
               "Design": ["Component2", "Component3", "Component4"]
             },
@@ -185,6 +192,7 @@
             "KnowledgeDomain3": 2.7,
             "KnowledgeDomain4": 2.5
           },
+          "experience": 1,
           "responsibilities": {
             "LF_System_Simulation": ["System", "Subsystem1"],
             "HF_System_Simulation": ["System"]
@@ -210,6 +218,7 @@
               "KnowledgeDomain3": 2.2,
               "KnowledgeDomain4": 1.6
             },
+            "experience": 0.5,
             "responsibilities": {
               "Component_Simulation": ["Component1", "Component2", "Component3", "Component4"]
             },
@@ -233,6 +242,7 @@
               "KnowledgeDomain3": 2.8,
               "KnowledgeDomain4": 1.9
             },
+            "experience": 0.1,
             "responsibilities": {
               "LF_System_Simulation": ["Subsystem1", "Subsystem2"],
               "HF_System_Simulation": ["Subsystem1", "Subsystem2"]
@@ -261,6 +271,7 @@
             "KnowledgeDomain3": 1,
             "KnowledgeDomain4": 1
           },
+          "experience": 0.7,
           "responsibilities": {
             "Testing": ["System"]
           },
@@ -285,6 +296,7 @@
               "KnowledgeDomain3": 1,
               "KnowledgeDomain4": 1
             },
+            "experience": 0.4,
             "responsibilities": {
               "Testing": ["Subsystem1", "Component1", "Component2", "Component3", "Component4"]
             },
@@ -308,6 +320,7 @@
               "KnowledgeDomain3": 1,
               "KnowledgeDomain4": 1
             },
+            "experience": 0.6,
             "responsibilities": {
               "Testing": ["System", "Subsystem2", "Component1", "Component2"]
             },
@@ -331,6 +344,7 @@
               "KnowledgeDomain3": 1,
               "KnowledgeDomain4": 3
             },
+            "experience": 0.7,
             "responsibilities": {
               "Prototyping": ["System", "Subsystem1", "Component3", "Component4"]
             },
@@ -354,6 +368,7 @@
               "KnowledgeDomain3": 3,
               "KnowledgeDomain4": 1
             },
+            "experience": 0.7,
             "responsibilities": {
               "Prototyping": ["Subsystem2", "Component1", "Component2"]
             },

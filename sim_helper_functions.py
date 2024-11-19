@@ -1,5 +1,6 @@
 
 import numpy as np
+import os
 
 from Inputs.tuning_params import *
 from Inputs.sim_settings import *
@@ -97,3 +98,15 @@ def interpolate_knowledge_base_completeness(list, knowledge_level):
         upper_index = lower_index + 1
         fraction = upper_index - lower_index
         return list[lower_index] + fraction * (list[upper_index]- list[lower_index])
+    
+    
+def clear_folder(folder_path):
+    if os.path.exists(folder_path):
+        for filename in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, filename)
+            try:
+                os.unlink(file_path)
+            except Exception as e:
+                print(f"Error deleting {file_path}: {e}")
+    else:
+        print(f"The folder {folder_path} does not exist.")

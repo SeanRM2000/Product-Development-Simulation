@@ -18,7 +18,7 @@ class TaskNetwork():
     def __init__(self, activity_network: ActivityNetwork, architecture_graph: ArchitectureGraph, randomize_structure=False, randomize_task_times=False, random_seed=None):
         self.activity_network = activity_network.activity_graph
         self.architecture_graph = architecture_graph.architecture
-        self.final_activity =activity_network.final_activity
+        self.final_activity = activity_network.final_activity
         
         if random_seed:
             random.seed(random_seed)
@@ -54,23 +54,26 @@ class TaskNetwork():
         
 
     
-    def add_task(self, task_number, activity_name, effort, dependencies=None, final_task=False):
+    def add_task(self, task_number, activity_name, effort, dependencies=None, first_task=False, final_task=False):
         task_name = self.generate_task_name(task_number, activity_name)
         
         architecture_element = self.activity_network.nodes[activity_name]['architecture_element']
         activity_type = self.activity_network.nodes[activity_name]['activity_type']
         knowledge_req = self.architecture_graph.nodes[architecture_element]['knowledge_req']
         
+        learning_rate = self.activity_network.nodes[activity_name]['learning_rate']
+        
         self.task_graph.add_node(
             task_name,
             task_number=task_number,
+            first_task=first_task,
             final_task=final_task,
             activity_name=activity_name,
             architecture_element=architecture_element,
             activity_type=activity_type,
             knowledge_req=knowledge_req,
             nominal_effort=effort,
-            learning_factor=learning_factors[activity_type],
+            learning_rate=learning_rate,
             importance=0,
             task_status='Waiting',
             assigned_to=None,
@@ -139,12 +142,8 @@ class TaskNetwork():
             req_importance = self.architecture_graph.nodes[architecture_element]['req_importance']
             rank_pos_weight = self.task_graph.nodes[task]['rank_pos_weight']
             
-            self.task_graph.nodes[task]['importance'] = round(
-                prioritization_weights['rank_pos_weight'] * rank_pos_weight +
-                prioritization_weights['complexity'] * complexity +
-                prioritization_weights['req_importance'] * req_importance,
-                4
-            ) 
+            importance = round(prioritization_weights['rank_pos_weight'] * rank_pos_weight + prioritization_weights['complexity'] * complexity + prioritization_weights['req_importance'] * req_importance, 4) 
+            self.task_graph.nodes[task]['importance'] = importance
 
 
     def recursive_task_network_generation(self, activity_name, incoming_dependencies=None, previous_final_task=None, num_overlapped_tasks=0):
@@ -229,7 +228,7 @@ class TaskNetwork():
         
     def generate_non_random_task_network_for_activity(self, activity_name, task_times, incoming_dependencies=None):
         n_tasks = len(task_times) - 2 
-        start_task_name = self.add_task(0, activity_name, task_times[0], incoming_dependencies) # start task
+        start_task_name = self.add_task(0, activity_name, task_times[0], incoming_dependencies, first_task=True) # start task
         
         if fully_linear_tasks:
             parallelization = 0
@@ -268,7 +267,7 @@ class TaskNetwork():
         
     def generate_random_task_network_for_activity(self, activity_name, task_times, incoming_dependencies=None):
         n_tasks = len(task_times)
-        self.add_task(0, activity_name, task_times[0], incoming_dependencies) # Start task
+        self.add_task(0, activity_name, task_times[0], incoming_dependencies, first_task=True) # Start task
         last_task = n_tasks - 1
         
         for current_task in range(n_tasks - 1):
@@ -408,10 +407,11 @@ class TaskNetwork():
 
         
 if __name__ == "__main__":
-    architecture_graph = ArchitectureGraph(test_data=True)
-    tools = Tools(test_data=True)
+    folder = 'Architecture/Inputs/Baseline'
+    architecture_graph = ArchitectureGraph(folder=folder)
+    tools = Tools(folder=folder)
     
-    activity_network = ActivityNetwork(architecture_graph, tools, random_seed=42)
+    activity_network = ActivityNetwork(architecture_graph, tools, folder=folder, random_seed=42)
 
     
     task_network = TaskNetwork(activity_network, architecture_graph, randomize_structure=True, randomize_task_times=False, random_seed=42)
