@@ -1,0 +1,5 @@
+Name,Wait for Results : Boolean,Overlap to previous Activity : Real
+system Design,false,0.4
+design,true,0.3
+virtual Integration,true,0.2
+prototyping,true,0.0

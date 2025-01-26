@@ -1,0 +1,23 @@
+Name,Composition
+Air Frame,"Main Body
+Arms
+Landing Gear"
+Arms,
+Battery,
+Contoller,
+Control Software,
+Drone,"Flight Control System
+Air Frame
+Propulsion System"
+Flight Control System,"Control Software
+Sensor Suite
+Contoller"
+Interface Severity,
+Landing Gear,
+Main Body,
+Motor,
+Propeller,
+Propulsion System,"Propeller
+Motor
+Battery"
+Sensor Suite,

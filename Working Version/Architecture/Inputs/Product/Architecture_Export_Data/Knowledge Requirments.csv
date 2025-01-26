@@ -1,0 +1,14 @@
+Name,Mechanical Engineering : Knowledge Level,Aerospace Engineering : Knowledge Level,Aerodynamics : Knowledge Level,Electical Engineering : Knowledge Level,Software Engineering : Knowledge Level,Stability and Control : Knowledge Level,Sensor Technology : Knowledge Level,Signal Processing : Knowledge Level,Embedded Systems : Knowledge Level,Manufacturing : Knowledge Level
+Drone.Knowledge Requirement,2.0,3.0,2.0,1.0,1.0,2.0,0.0,0.0,0.0,1.0
+Flight Control System.Knowledge Requirement,0.0,1.0,2.0,1.0,2.0,3.0,1.0,2.0,1.0,0.0
+Propulsion System.Knowledge Requirement,2.0,3.0,2.0,2.0,0.0,1.0,0.0,0.0,0.0,1.0
+Air Frame.Knowledge Requirement,3.0,1.0,2.0,0.0,0.0,1.0,0.0,0.0,0.0,2.0
+Control Software.Knowledge Requirement,0.0,1.0,1.0,1.0,3.0,3.0,1.0,2.0,1.0,0.0
+Flight Controller.Knowledge Requirement,0.0,0.0,0.0,3.0,2.0,1.0,2.0,2.0,3.0,0.0
+Sensor Suite.Knowledge Requirement,0.0,0.0,0.0,3.0,2.0,1.0,3.0,3.0,3.0,0.0
+Battery.Knowledge Requirement,0.0,0.0,0.0,3.0,0.0,0.0,0.0,0.0,1.0,0.0
+Motor.Knowledge Requirement,2.0,0.0,0.0,2.0,1.0,0.0,1.0,0.0,0.0,0.0
+Propeller.Knowledge Requirement,3.0,2.0,3.0,0.0,0.0,0.0,0.0,0.0,0.0,2.0
+Arms.Knowledge Requirement,3.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,3.0
+Landing Gear.Knowledge Requirement,3.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,3.0
+Main Body.Knowledge Requirement,3.0,0.0,2.0,0.0,0.0,0.0,0.0,0.0,0.0,3.0

@@ -1,0 +1,14 @@
+Name,Importance : Real,Novelty : Real,Prototyping Start Condition : Start Condition
+Drone,1.0,0.5,Full Virtual Integration
+Flight Control System,0.4,0.7,Lower Level Virtual Integration
+Propulsion System,0.4,0.5,Lower Level Virtual Integration
+Air Frame,0.2,0.2,Lower Level Virtual Integration
+Control Software,0.25,0.8,Component Development
+Flight Controller,0.05,0.3,Component Development
+Sensor Suite,0.1,0.8,Component Development
+Battery,0.1,0.4,Higher Level Virtual Integration
+Motor,0.2,0.3,Higher Level Virtual Integration
+Propeller,0.1,0.5,Higher Level Virtual Integration
+Arms,0.1,0.1,Higher Level Virtual Integration
+Landing Gear,0.05,0.3,Higher Level Virtual Integration
+Main Body,0.05,0.1,Higher Level Virtual Integration
