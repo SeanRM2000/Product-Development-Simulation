@@ -1,0 +1,10 @@
+,Motor,Main Body,Battery,Arms,Controller,Landing Gear,Propeller,Sensor Suite,Control Software
+Motor,0,0,9,21,9,0,10,0,3
+Main Body,0,0,6,21,1,7,0,2,0
+Battery,9,6,0,0,2,0,0,0,0
+Arms,21,21,0,0,0,0,3,0,0
+Controller,9,1,2,0,0,0,0,10,9
+Landing Gear,0,7,0,0,0,0,0,0,0
+Propeller,10,0,0,3,0,0,0,0,0
+Sensor Suite,0,2,0,0,10,0,0,0,9
+Control Software,3,0,0,0,9,0,0,9,0

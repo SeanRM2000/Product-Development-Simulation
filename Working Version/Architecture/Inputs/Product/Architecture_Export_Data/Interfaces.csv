@@ -1,0 +1,15 @@
+architecture Component Element : Architecture Component Element,architecture Component Element1 : Architecture Component Element,Geometric/Spatial : Severity,Structural : Severity,Engery : Severity,Material : Severity,Information/Data : Severity
+Motor,Battery,0,0,9,0,0
+Motor,Propeller,3,3,3,1,0
+Motor,Arms,9,9,3,0,0
+Main Body,Arms,9,9,3,0,0
+Battery,Main Body,3,3,0,0,0
+Arms,Propeller,0,0,0,3,0
+Motor,Flight Controller,0,0,0,0,9
+Flight Controller,Battery,0,0,1,0,1
+Main Body,Flight Controller,1,0,0,0,0
+Main Body,Sensor Suite,1,0,1,0,0
+Flight Controller,Control Software,0,0,0,0,9
+Flight Controller,Sensor Suite,1,0,0,0,9
+Motor,Control Software,0,0,0,0,3
+Landing Gear,Main Body,3,3,1,0,0

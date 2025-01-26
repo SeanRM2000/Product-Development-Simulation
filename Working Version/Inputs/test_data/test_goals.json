@@ -1,0 +1,12 @@
+{
+    "overall_quality_goal": 0.9,
+    "cost_target": 1600,
+    "lead_time_target": 130,
+    "risk_calc_settings":
+    {
+        "cost_risk_factor": 2,
+        "cost_impact_type": "quadratic",
+        "lead_time_risk_factor": 150,
+        "lead_time_impact_type": "quadratic"
+    }
+}

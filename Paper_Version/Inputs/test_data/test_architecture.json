@@ -1,0 +1,85 @@
+{
+    "System": {
+        "knowledge_vector": {
+            "KnowledgeDomain1": 3,
+            "KnowledgeDomain2": 2,
+            "KnowledgeDomain3": 2,
+            "KnowledgeDomain4": 3
+        },
+        "req_importance": 1,
+        "prototype_start_condition": "Full Virtual Integration",
+        "novelty": 0.5,
+        "children": {
+            "Subsystem1": {
+                "knowledge_vector": {
+                    "KnowledgeDomain1": 3,
+                    "KnowledgeDomain2": 2,
+                    "KnowledgeDomain3": 3,
+                    "KnowledgeDomain4": 2
+                },
+                "req_importance": 0.6,
+                "prototype_start_condition": "Lower Level Virtual Integration",
+                "novelty": 0.5,
+                "children": {
+                    "Component1": {
+                        "knowledge_vector": {
+                            "KnowledgeDomain1": 3,
+                            "KnowledgeDomain2": 1,
+                            "KnowledgeDomain3": 3,
+                            "KnowledgeDomain4": 2
+                        },
+                        "req_importance": 0.4,
+                        "prototype_start_condition": "Component Development",
+                        "novelty": 0.5
+                    },
+                    "Component2": {
+                        "knowledge_vector": {
+                            "KnowledgeDomain1": 2,
+                            "KnowledgeDomain2": 3,
+                            "KnowledgeDomain3": 2,
+                            "KnowledgeDomain4": 3
+                        },
+                        "req_importance": 0.2,
+                        "prototype_start_condition": "Higher Level Virtual Integration",
+                        "novelty": 0.5
+                    }
+                }
+            },
+            "Subsystem2": {
+                "knowledge_vector": {
+                    "KnowledgeDomain1": 2,
+                    "KnowledgeDomain2": 3,
+                    "KnowledgeDomain3": 2,
+                    "KnowledgeDomain4": 3
+                },
+                "req_importance": 0.4,
+                "prototype_start_condition": "Full Virtual Integration",
+                "novelty": 0.5,
+                "children": {
+                    "Component3": {
+                        "knowledge_vector": {
+                            "KnowledgeDomain1": 1,
+                            "KnowledgeDomain2": 3,
+                            "KnowledgeDomain3": 2,
+                            "KnowledgeDomain4": 3
+                        },
+                        "req_importance": 0.3,
+                        "prototype_start_condition": "Higher Level Virtual Integration",
+                        "novelty": 0.5
+                    },
+                    "Component4": {
+                        "knowledge_vector": {
+                            "KnowledgeDomain1": 3,
+                            "KnowledgeDomain2": 2,
+                            "KnowledgeDomain3": 3,
+                            "KnowledgeDomain4": 1
+                        },
+                        "req_importance": 0.1,
+                        "prototype_start_condition": "Higher Level Virtual Integration",
+                        "novelty": 0.5
+                    }
+                }
+            }
+        }
+    }
+}

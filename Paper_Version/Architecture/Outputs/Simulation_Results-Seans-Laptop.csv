@@ -1,0 +1,5 @@
+Name,Mean Lead Time : weeks,Mean Development Cost : $k,Human Resource Utilization : percent,Overall Development Risk : $k,Schedule Risk : $k,Development Cost Risk : $k
+Baseline,126.1,1362.3,55.7,20972.0,1061.6,19910.4
+Config1,100.3,796.4,55.8,2238.8,2.8,2236.0
+Config2,97.9,1250.0,56.1,2648.5,490.3,2158.3
+Config3,84.7,1110.6,56.0,633.2,182.4,450.8
