@@ -1,0 +1,55 @@
+{
+    "System_Design": {
+    "tri_distribution": [5, 10, 7],
+    "learning_rate": 0.8,
+    "activity_overlap": {
+        "to": "creation",
+        "value": 0.5
+    }
+    },
+    "LF_System_Simulation": {
+    "tri_distribution": [5, 7, 6],
+    "learning_rate": 0.9,
+    "activity_overlap": null
+    },
+    "Design": {
+    "tri_distribution": [10, 15, 13],
+    "learning_rate": 0.8,
+    "activity_overlap": {
+        "to": "quantification",
+        "value": 0.5
+    }
+    },
+    "Component_Simulation": {
+    "tri_distribution": [5, 10, 8],
+    "learning_rate": 0.9,
+    "activity_overlap": null
+    },
+    "Virtual_Integration": {
+    "tri_distribution": [6, 10, 8],
+    "learning_rate": 0.8,
+    "activity_overlap": {
+        "to": "quantification",
+        "value": 0.3
+    }
+    },
+    "HF_System_Simulation": {
+    "tri_distribution": [5, 8, 6],
+    "learning_rate": 0.9,
+    "activity_overlap": null
+    },
+    "Prototyping": {
+    "tri_distribution": [7, 10, 9],
+    "learning_rate": 0.95,
+    "activity_overlap": {
+        "to": "quantification",
+        "value": 0
+    }
+    },
+    "Testing": {
+    "tri_distribution": [6, 9, 8],
+    "learning_rate": 0.9,
+    "activity_overlap": null
+    }
+  }
+  
