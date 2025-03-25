@@ -1,0 +1,240 @@
+{
+    "Drone": {
+        "knowledge_vector": {
+            "Mechanical Engineering": 1.0,
+            "Aerospace Engineering": 3.0,
+            "Aerodynamics": 2.0,
+            "Electical Engineering": 1.0,
+            "Software Engineering": 1.0,
+            "Stability and Control": 2.0,
+            "Sensor Technology": 0.0,
+            "Signal Processing": 0.0,
+            "Embedded Systems": 0.0,
+            "Manufacturing": 1.0
+        },
+        "req_importance": 1.0,
+        "prototype_start_condition": "Full Virtual Integration",
+        "novelty": 0.5,
+        "children": {
+            "Flight Control System": {
+                "knowledge_vector": {
+                    "Mechanical Engineering": 0.0,
+                    "Aerospace Engineering": 2.0,
+                    "Aerodynamics": 2.0,
+                    "Electical Engineering": 1.0,
+                    "Software Engineering": 2.0,
+                    "Stability and Control": 3.0,
+                    "Sensor Technology": 1.0,
+                    "Signal Processing": 2.0,
+                    "Embedded Systems": 1.0,
+                    "Manufacturing": 0.0
+                },
+                "req_importance": 0.4,
+                "prototype_start_condition": "Full Virtual Integration",
+                "novelty": 0.5,
+                "children": {
+                    "Control Software": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 0.0,
+                            "Aerospace Engineering": 2.0,
+                            "Aerodynamics": 1.0,
+                            "Electical Engineering": 1.0,
+                            "Software Engineering": 3.0,
+                            "Stability and Control": 3.0,
+                            "Sensor Technology": 1.0,
+                            "Signal Processing": 2.0,
+                            "Embedded Systems": 1.0,
+                            "Manufacturing": 0.0
+                        },
+                        "req_importance": 0.25,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": false
+                    },
+                    "Sensor Suite": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 0.0,
+                            "Aerospace Engineering": 0.0,
+                            "Aerodynamics": 0.0,
+                            "Electical Engineering": 2.0,
+                            "Software Engineering": 1.0,
+                            "Stability and Control": 1.0,
+                            "Sensor Technology": 3.0,
+                            "Signal Processing": 2.0,
+                            "Embedded Systems": 1.0,
+                            "Manufacturing": 0.0
+                        },
+                        "req_importance": 0.1,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": true
+                    },
+                    "Controller": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 0.0,
+                            "Aerospace Engineering": 0.0,
+                            "Aerodynamics": 0.0,
+                            "Electical Engineering": 3.0,
+                            "Software Engineering": 1.0,
+                            "Stability and Control": 0.0,
+                            "Sensor Technology": 1.0,
+                            "Signal Processing": 2.0,
+                            "Embedded Systems": 3.0,
+                            "Manufacturing": 0.0
+                        },
+                        "req_importance": 0.05,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": false
+                    }
+                }
+            },
+            "Air Frame": {
+                "knowledge_vector": {
+                    "Mechanical Engineering": 3.0,
+                    "Aerospace Engineering": 1.0,
+                    "Aerodynamics": 2.0,
+                    "Electical Engineering": 0.0,
+                    "Software Engineering": 0.0,
+                    "Stability and Control": 1.0,
+                    "Sensor Technology": 0.0,
+                    "Signal Processing": 0.0,
+                    "Embedded Systems": 0.0,
+                    "Manufacturing": 2.0
+                },
+                "req_importance": 0.3,
+                "prototype_start_condition": "Full Virtual Integration",
+                "novelty": 0.5,
+                "children": {
+                    "Main Body": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 2.0,
+                            "Aerospace Engineering": 0.0,
+                            "Aerodynamics": 2.0,
+                            "Electical Engineering": 0.0,
+                            "Software Engineering": 0.0,
+                            "Stability and Control": 0.0,
+                            "Sensor Technology": 0.0,
+                            "Signal Processing": 0.0,
+                            "Embedded Systems": 0.0,
+                            "Manufacturing": 3.0
+                        },
+                        "req_importance": 0.15,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": false
+                    },
+                    "Arms": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 3.0,
+                            "Aerospace Engineering": 0.0,
+                            "Aerodynamics": 2.0,
+                            "Electical Engineering": 0.0,
+                            "Software Engineering": 0.0,
+                            "Stability and Control": 0.0,
+                            "Sensor Technology": 0.0,
+                            "Signal Processing": 0.0,
+                            "Embedded Systems": 0.0,
+                            "Manufacturing": 3.0
+                        },
+                        "req_importance": 0.1,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": false
+                    },
+                    "Landing Gear": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 2.0,
+                            "Aerospace Engineering": 0.0,
+                            "Aerodynamics": 0.0,
+                            "Electical Engineering": 0.0,
+                            "Software Engineering": 0.0,
+                            "Stability and Control": 0.0,
+                            "Sensor Technology": 0.0,
+                            "Signal Processing": 0.0,
+                            "Embedded Systems": 0.0,
+                            "Manufacturing": 3.0
+                        },
+                        "req_importance": 0.05,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": false
+                    }
+                }
+            },
+            "Propulsion System": {
+                "knowledge_vector": {
+                    "Mechanical Engineering": 2.0,
+                    "Aerospace Engineering": 3.0,
+                    "Aerodynamics": 2.0,
+                    "Electical Engineering": 2.0,
+                    "Software Engineering": 0.0,
+                    "Stability and Control": 1.0,
+                    "Sensor Technology": 0.0,
+                    "Signal Processing": 0.0,
+                    "Embedded Systems": 0.0,
+                    "Manufacturing": 1.0
+                },
+                "req_importance": 0.3,
+                "prototype_start_condition": "Full Virtual Integration",
+                "novelty": 0.5,
+                "children": {
+                    "Propeller": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 3.0,
+                            "Aerospace Engineering": 2.0,
+                            "Aerodynamics": 3.0,
+                            "Electical Engineering": 0.0,
+                            "Software Engineering": 0.0,
+                            "Stability and Control": 0.0,
+                            "Sensor Technology": 0.0,
+                            "Signal Processing": 0.0,
+                            "Embedded Systems": 0.0,
+                            "Manufacturing": 2.0
+                        },
+                        "req_importance": 0.1,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": false
+                    },
+                    "Motor": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 2.0,
+                            "Aerospace Engineering": 0.0,
+                            "Aerodynamics": 0.0,
+                            "Electical Engineering": 2.0,
+                            "Software Engineering": 1.0,
+                            "Stability and Control": 0.0,
+                            "Sensor Technology": 1.0,
+                            "Signal Processing": 0.0,
+                            "Embedded Systems": 0.0,
+                            "Manufacturing": 0.0
+                        },
+                        "req_importance": 0.2,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": true
+                    },
+                    "Battery": {
+                        "knowledge_vector": {
+                            "Mechanical Engineering": 0.0,
+                            "Aerospace Engineering": 0.0,
+                            "Aerodynamics": 0.0,
+                            "Electical Engineering": 3.0,
+                            "Software Engineering": 0.0,
+                            "Stability and Control": 0.0,
+                            "Sensor Technology": 0.0,
+                            "Signal Processing": 0.0,
+                            "Embedded Systems": 1.0,
+                            "Manufacturing": 0.0
+                        },
+                        "req_importance": 0.1,
+                        "prototype_start_condition": "Full Virtual Integration",
+                        "novelty": 0.5,
+                        "procure": true
+                    }
+                }
+            }
+        }
+    }
+}

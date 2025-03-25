@@ -1,0 +1,194 @@
+{
+    "Drone_System_Design": [
+        -0.813953488372093,
+        0.0
+    ],
+    "Drone_LF_System_Simulation": [
+        -0.6744186046511628,
+        0.0
+    ],
+    "Propulsion System_System_Design": [
+        -0.5348837209302326,
+        -0.13953488372093023
+    ],
+    "Flight Control System_System_Design": [
+        -0.5348837209302326,
+        0.0
+    ],
+    "Air Frame_System_Design": [
+        -0.5348837209302326,
+        0.13953488372093023
+    ],
+    "Propulsion System_LF_System_Simulation": [
+        -0.39534883720930236,
+        -0.13953488372093023
+    ],
+    "Flight Control System_LF_System_Simulation": [
+        -0.39534883720930236,
+        0.0
+    ],
+    "Air Frame_LF_System_Simulation": [
+        -0.39534883720930236,
+        0.13953488372093023
+    ],
+    "Motor_Design": [
+        -0.2558139534883721,
+        -0.5581395348837209
+    ],
+    "Battery_Design": [
+        -0.2558139534883721,
+        -0.27906976744186046
+    ],
+    "Propeller_Design": [
+        -0.2558139534883721,
+        -0.41860465116279066
+    ],
+    "Sensor Suite_Design": [
+        -0.2558139534883721,
+        0.0
+    ],
+    "Controller_Design": [
+        -0.2558139534883721,
+        -0.13953488372093023
+    ],
+    "Control Software_Design": [
+        -0.2558139534883721,
+        0.13953488372093023
+    ],
+    "Main Body_Design": [
+        -0.2558139534883721,
+        0.27906976744186046
+    ],
+    "Landing Gear_Design": [
+        -0.2558139534883721,
+        0.41860465116279066
+    ],
+    "Arms_Design": [
+        -0.2558139534883721,
+        0.5581395348837209
+    ],
+    "Motor_Prototyping": [
+        -0.11627906976744186,
+        -0.5581395348837209
+    ],
+    "Battery_Prototyping": [
+        -0.11627906976744186,
+        -0.27906976744186046
+    ],
+    "Propeller_Component_Simulation": [
+        -0.11627906976744186,
+        -0.41860465116279066
+    ],
+    "Sensor Suite_Prototyping": [
+        -0.11627906976744186,
+        0.0
+    ],
+    "Controller_Component_Simulation": [
+        -0.11627906976744186,
+        -0.13953488372093023
+    ],
+    "Control Software_Component_Simulation": [
+        -0.11627906976744186,
+        0.13953488372093023
+    ],
+    "Main Body_Component_Simulation": [
+        -0.11627906976744186,
+        0.27906976744186046
+    ],
+    "Landing Gear_Component_Simulation": [
+        -0.11627906976744186,
+        0.41860465116279066
+    ],
+    "Arms_Component_Simulation": [
+        -0.11627906976744186,
+        0.5581395348837209
+    ],
+    "Propeller_Prototyping": [
+        0.02325581395348837,
+        -0.41860465116279066
+    ],
+    "Controller_Prototyping": [
+        0.02325581395348837,
+        -0.13953488372093023
+    ],
+    "Control Software_Prototyping": [
+        0.02325581395348837,
+        0.13953488372093023
+    ],
+    "Air Frame_Virtual_Integration": [
+        0.02325581395348837,
+        0.41860465116279066
+    ],
+    "Propeller_Testing": [
+        0.1627906976744186,
+        -0.41860465116279066
+    ],
+    "Controller_Testing": [
+        0.1627906976744186,
+        -0.13953488372093023
+    ],
+    "Control Software_Testing": [
+        0.1627906976744186,
+        0.13953488372093023
+    ],
+    "Air Frame_HF_System_Simulation": [
+        0.1627906976744186,
+        0.41860465116279066
+    ],
+    "Propulsion System_Prototyping": [
+        0.3023255813953488,
+        -0.41860465116279066
+    ],
+    "Flight Control System_Prototyping": [
+        0.3023255813953488,
+        0.0
+    ],
+    "Main Body_Prototyping": [
+        0.3023255813953488,
+        0.27906976744186046
+    ],
+    "Landing Gear_Prototyping": [
+        0.3023255813953488,
+        0.41860465116279066
+    ],
+    "Arms_Prototyping": [
+        0.3023255813953488,
+        0.5581395348837209
+    ],
+    "Propulsion System_Testing": [
+        0.441860465116279,
+        -0.41860465116279066
+    ],
+    "Flight Control System_Testing": [
+        0.441860465116279,
+        0.0
+    ],
+    "Main Body_Testing": [
+        0.441860465116279,
+        0.27906976744186046
+    ],
+    "Landing Gear_Testing": [
+        0.441860465116279,
+        0.41860465116279066
+    ],
+    "Arms_Testing": [
+        0.441860465116279,
+        0.5581395348837209
+    ],
+    "Air Frame_Prototyping": [
+        0.5813953488372093,
+        0.41860465116279066
+    ],
+    "Air Frame_Testing": [
+        0.7209302325581396,
+        0.41860465116279066
+    ],
+    "Drone_Prototyping": [
+        0.8604651162790697,
+        0.0
+    ],
+    "Drone_Testing": [
+        1.0,
+        0.0
+    ]
+}
