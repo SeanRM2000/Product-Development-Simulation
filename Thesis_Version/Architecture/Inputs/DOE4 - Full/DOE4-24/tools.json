@@ -14,7 +14,7 @@
             "interoperability": 0.2,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.55,
+            "accuracy": 0.5,
             "cost_per_month": 10000
         }
     },
@@ -32,27 +32,8 @@
             "interoperability": 0.2,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.7,
-            "cost_per_month": 5000
-        }
-    },
-    "HFSystemSimulator": {
-        "type": "digital",
-        "activities": [
-            "HF_System_Simulation",
-            "Virtual_Integration"
-        ],
-        "mapped_elements": [
-            "Drone",
-            "Propulsion System",
-            "Flight Control System"
-        ],
-        "parameters": {
-            "interoperability": 0.2,
-            "productivity": 0.7,
-            "use_complexity": 2,
             "accuracy": 0.8,
-            "cost_per_month": 15000
+            "cost_per_month": 5000
         }
     },
     "CAD": {
@@ -69,10 +50,10 @@
             "Air Frame"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.8,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.55,
+            "accuracy": 0.5,
             "cost_per_month": 4000
         }
     },
@@ -91,7 +72,7 @@
             "interoperability": 0.2,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.8,
+            "accuracy": 0.5,
             "cost_per_month": 2000
         }
     },
@@ -104,10 +85,10 @@
             "Controller"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.55,
+            "accuracy": 0.8,
             "cost_per_month": 4000
         }
     },
@@ -126,10 +107,10 @@
             "Air Frame"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.8,
+            "accuracy": 0.2,
             "cost_per_month": 12000
         }
     },
@@ -142,10 +123,10 @@
             "Controller"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.8,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.8,
+            "accuracy": 0.5,
             "cost_per_month": 4000
         }
     },
@@ -162,7 +143,7 @@
             "Propeller"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 0.7,
             "accuracy": 0.95,
             "availability": 0.1,
@@ -182,7 +163,7 @@
             "Controller"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 0.7,
             "accuracy": null,
             "availability": 0.2,
@@ -201,7 +182,7 @@
             "Drone"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 0.7,
             "accuracy": null,
             "availability": 0.2,
@@ -219,7 +200,7 @@
             "Sensor Suite"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 1,
             "accuracy": null,
             "availability": 0.2,
@@ -237,7 +218,7 @@
             "Sensor Suite"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 1,
             "use_complexity": 2.0,
             "accuracy": null,
@@ -254,7 +235,7 @@
             "Flight Control System"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 0.7,
             "accuracy": 0.95,
             "availability": 0.2,
@@ -271,7 +252,7 @@
             "Propulsion System"
         ],
         "parameters": {
-            "interoperability": 0.2,
+            "interoperability": 0.5,
             "productivity": 0.7,
             "accuracy": 0.99,
             "availability": 0.2,

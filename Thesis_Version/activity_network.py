@@ -27,7 +27,8 @@ class ActivityNetwork:
         if random_seed:
             random.seed(random_seed)
             np.random.seed(random_seed)
-
+        
+        
         self._generate_activity_graph(activity_data)
         
         reduced_graph = nx.transitive_reduction(self.activity_graph)
@@ -58,12 +59,11 @@ class ActivityNetwork:
         learning_rate = activity_data['learning_rate'] # reduce effort after repeating tasks (Wright model) --> doubling number of repetetions leads to 1-x reduction 
         
         # time reduction
-        red = 0.5
         spread_red=0.02
         
-        min = distribution[0]
-        max = distribution[1]
-        mode = distribution[2]
+        min = distribution[0] * effort_factor
+        max = distribution[1] * effort_factor
+        mode = distribution[2] * effort_factor
         
         spread_min = (mode - min) * spread_red
         spread_max = (max - mode) * spread_red
@@ -75,6 +75,9 @@ class ActivityNetwork:
         if ((self.architecture_graph.get_hierarchical_children(node_name) and activity_type == 'Testing') or
             (not self.architecture_graph.get_hierarchical_children(node_name) and activity_type == 'Prototyping')):
             effort = round(effort * testing_increase_factor_systems, 4)
+        
+        if activity_type in {'Testing', 'Prototyping'}:
+            effort = round(effort * physical_effort_factor, 4)
         
         # decreased effort for design and prototyping activies that are supplier activities
         if self.architecture_graph.architecture.nodes[node_name].get('procure', False) and activity_type == 'Design':
@@ -417,7 +420,7 @@ class ActivityNetwork:
 
 if __name__ == "__main__":
     folder = 'Architecture/Inputs/DOE3 - New Tool/DOE3-1'
-    #folder = 'Architecture/Inputs/Baseline'
+    folder = 'Architecture/Inputs/Baseline'
     
     architecture_graph = ArchitectureGraph(folder=folder)
     tools = Tools(architecture=architecture_graph.architecture, folder=folder)

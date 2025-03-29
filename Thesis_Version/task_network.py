@@ -339,7 +339,7 @@ class TaskNetwork():
                     task_times[activity].append(remaining_effort)
                     
             else:
-                n_tasks = int(total_effort / nominal_task_effort)
+                n_tasks = int(total_effort / (nominal_task_effort * effort_factor))
                 task_effort = round(total_effort / n_tasks, 4)
                 task_times[activity] = [task_effort] * n_tasks
                 

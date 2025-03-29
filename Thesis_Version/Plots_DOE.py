@@ -6,7 +6,7 @@ import math
 import pandas as pd
 
 
-doe = 'DOE1'
+doe = 'DOE2'
 use_value = None
 
 df = pd.read_excel('Architecture/DOE_Results.xlsx', sheet_name=doe)
@@ -22,8 +22,10 @@ plt.rcParams["mathtext.fontset"] = "stix"
 results = {
     'Cost': 'Cost ($k)',
     'Lead Time': 'Lead Time (wks)',
-    'Risk': 'Risk ($k)',
+    'Risk': 'Risk ($m)',
+    'Quality': 'Quality',
     'Effectivness': r'$\eta_{rework}$',
+    'Average Iterations': r'$n_{iter}$',
     'First Pass Yield': 'FPY',
     'Rel Cost Physical': r'$C_{physical}/C_{total}$',
     'Work Efficency': r'$\eta_{value}$',
@@ -58,7 +60,7 @@ match doe:
             input_2 = 'Interoperability'
             input_2_values = [0.2, 0.5, 0.8]
             additional_filter = 'Usability'
-            filter_value = 1.75
+            filter_value = 2
             label_addition = r'$T_I$'
 
 if additional_filter:
@@ -67,7 +69,7 @@ if additional_filter:
 if use_value:
     input_2_values = [use_value]
 
-fig, axes = plt.subplots(4, 2, figsize=(6, 8))
+fig, axes = plt.subplots(5, 2, figsize=(6, 8))
 axes = axes.flatten()
 
 markers = ['o', 's', 'x']
@@ -104,27 +106,28 @@ for i, (result_string, label) in enumerate(results.items()):
             ax.fill_between(x, lower, upper, alpha=0.2, color='grey')
             
         else:
-            y = filtered_df[result_string]
+            
+            y = np.array(filtered_df[result_string]) / 1000
             ax.plot(x, y, label=f'{label_addition} = {level}', marker=markers[j], fillstyle='none', linestyle=linestyles[j], color='black')
     
-    if i == 4:
-        ax.set_ylim(0, 0.4)
-    elif i == 3:
-        ax.set_ylim(0, 0.5)
+    # if i == 6:
+    #     ax.set_ylim(0, 0.4)
+    # elif i == 4:
+    #     ax.set_ylim(0, 0.5)
     
-    elif i >= 3:
-        ax.set_ylim(0, 1)    
+    # elif i >= 3 and i != 5:
+    #     ax.set_ylim(0, 1)    
     ax.set_ylabel(label)
     
-    if i in {6,7}:
+    if i in {8,9}:
         ax.set_xlabel(x_axis)
     
 
 
 plt.grid(False)
 handles, labels = axes[0].get_legend_handles_labels()
-fig.legend(handles, labels, loc='lower center', ncol=len(labels), fontsize=11, frameon=False)
-plt.tight_layout(rect=[0, 0.03, 1, 1])
+fig.legend(handles, labels, loc='upper center', ncol=len(labels), fontsize=11, frameon=False)
+plt.tight_layout(rect=[0, 0, 1, 0.97])
 
 plt.savefig(f'{doe}_Results.svg', format='svg')
 

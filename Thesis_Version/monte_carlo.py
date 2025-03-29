@@ -10,6 +10,7 @@ from scipy import stats
 from scipy.stats import gaussian_kde
 import pandas as pd
 import os
+import shutil
 import json
 import warnings
 
@@ -51,8 +52,12 @@ class MonteCarlo():
         
         self.architecture_config_name = architecture_config_name
         if architecture_config_name:
-            self.load_folder = 'Architecture/Inputs' + folder_extention + '/' + self.architecture_config_name
-            self.save_folder = 'Architecture/Outputs' + folder_extention + '/' + self.architecture_config_name
+            if folder_extention:
+                self.load_folder = 'Architecture/Inputs/' + folder_extention + '/' + self.architecture_config_name
+                self.save_folder = 'Architecture/Outputs/' + folder_extention + '/' + self.architecture_config_name
+            else:
+                self.load_folder = 'Architecture/Inputs/' + self.architecture_config_name
+                self.save_folder = 'Architecture/Outputs/' + self.architecture_config_name
         else:
             timestamp = time.time()
             dt_object = datetime.datetime.fromtimestamp(timestamp)
@@ -74,6 +79,7 @@ class MonteCarlo():
         
         self.lead_times = []
         self.dev_costs = []
+        self.final_quality = []
         self.effectivness = []
         self.average_iterations = []
         self.fp_yield = []
@@ -130,7 +136,7 @@ class MonteCarlo():
                     
                     if skipped_runs > 20:
                         print('\nMonte Carlo was stopped due to too many errors.\n')
-                        return
+                        return 'skipped'
                     else:
                         continue
                 else:
@@ -142,12 +148,13 @@ class MonteCarlo():
             # collect data
             self.dev_costs.append(results[0])
             self.lead_times.append(results[1])
-            self.effectivness.append(results[2])
-            self.average_iterations.append(results[3])
-            self.fp_yield.append(results[4])
-            self.cost_from_physical.append(results[5])
-            self.work_efficiency.append(results[6])
-            self.consitency.append(results[7])
+            self.final_quality.append(results[2])
+            self.effectivness.append(results[3])
+            self.average_iterations.append(results[4])
+            self.fp_yield.append(results[5])
+            self.cost_from_physical.append(results[6])
+            self.work_efficiency.append(results[7])
+            self.consitency.append(results[8])
 
 
             # convergence data
@@ -185,7 +192,7 @@ class MonteCarlo():
                     print('No runs added.')
         
         # Sim results 
-        print(f'\nMonte Carlo Simulation completed {'(' + self.architecture_config_name + ')' if self.architecture_config_name else ''}.\n')
+        print(f'\n\nMonte Carlo Simulation completed {'(' + self.architecture_config_name + ')' if self.architecture_config_name else ''}.\n')
         
         if self.skip_errors and skipped_runs > 0:
             print(f'------->Warning: {skipped_runs} runs skipped due to errors\n')
@@ -204,6 +211,7 @@ class MonteCarlo():
         
         mean_lead_time = np.mean(lead_times_in_weeks)
         mean_cost = np.mean(costs_in_thousands)
+        mean_quality = np.mean(self.final_quality)
         risk_results = calculate_risk(lead_times_in_weeks, costs_in_thousands, self.lead_time_target, self.cost_target, self.risk_calc_settings)
         mean_effectivness = np.mean(self.effectivness)
         mean_iterations = np.mean(self.average_iterations)
@@ -214,10 +222,10 @@ class MonteCarlo():
         
         
 
-        print('Results:')
-        print(f'     Mean Lead Time: {mean_lead_time:.1f} weeks ({mean_lead_time_ymd[0]} year(s), {mean_lead_time_ymd[1]} month(s), {mean_lead_time_ymd[2]} day(s))')
-        print(f'     Mean Development Cost: ${mean_cost:.1f}k')
-        print(f'     Overall Risk: ${risk_results['combined_risk']:.1f}k\n')
+        #print('Results:')
+        #print(f'     Mean Lead Time: {mean_lead_time:.1f} weeks ({mean_lead_time_ymd[0]} year(s), {mean_lead_time_ymd[1]} month(s), {mean_lead_time_ymd[2]} day(s))')
+        #print(f'     Mean Development Cost: ${mean_cost:.1f}k')
+        #print(f'     Overall Risk: ${risk_results['combined_risk']:.1f}k\n')
 
         
         # save data points for single runs
@@ -240,6 +248,7 @@ class MonteCarlo():
         if self.architecture_config_name:
             self.save_statistical_data(costs_in_thousands,
                                        lead_times_in_weeks,
+                                       self.final_quality,
                                        risk_results['combined_risk'],
                                        self.effectivness,
                                        self.average_iterations,
@@ -249,21 +258,24 @@ class MonteCarlo():
                                        self.consitency
                                        )
             
-            # self.save_simulation_results(round(mean_cost, 1),
-            #                              round(mean_lead_time, 1), 
-            #                              round(risk_results['combined_risk'], 1),
-            #                              round(mean_effectivness, 3),
-            #                              round(mean_iterations, 1),
-            #                              round(mean_fp_yield, 3),
-            #                              round(mean_cost_from_physical, 3),
-            #                              round(mean_work_efficiency, 3),
-            #                              round(mean_consitency, 3)
-            #                              )
+            self.save_simulation_results(round(mean_cost, 1),
+                                         round(mean_lead_time, 1), 
+                                         round(mean_quality, 3),
+                                         round(risk_results['combined_risk'], 1),
+                                         round(mean_effectivness, 3),
+                                         round(mean_iterations, 1),
+                                         round(mean_fp_yield, 3),
+                                         round(mean_cost_from_physical, 3),
+                                         round(mean_work_efficiency, 3),
+                                         round(mean_consitency, 3)
+                                         )
             
         if self.use_seeds and create_samples:
             self.get_representative_samples(lead_times_in_weeks, costs_in_thousands, self.lead_time_target, self.cost_target)
             
         plt.close('all')
+        
+        return skipped_runs
 
 
     def stability_check(self):
@@ -370,6 +382,7 @@ class MonteCarlo():
     def save_statistical_data(self,
                               cost, 
                               lead_time,
+                              quality,
                               risk,
                               effectivness,
                               n_iterations,
@@ -394,7 +407,11 @@ class MonteCarlo():
         
         results_file = 'Architecture/Simulation_Results.csv'
         
-        doe, number = self.architecture_config_name.split('-')
+        if 'Baseline' in self.architecture_config_name:
+            doe = 'Baseline'
+            number = ''
+        else:
+            doe, number = self.architecture_config_name.split('-')
         
         results_data = {
             "Name": self.architecture_config_name,
@@ -414,6 +431,13 @@ class MonteCarlo():
             "Lead Time 95confidence Upper": round(confidence(lead_time, upper=True), 1),
             "Lead Time Q25": round(np.percentile(lead_time, [25, 75])[0], 1),
             "Lead Time Q75": round(np.percentile(lead_time, [25, 75])[1], 1),
+            
+            "Quality Mean": round(np.mean(quality), 3),
+            "Quality Median": round(np.median(quality), 3),
+            "Quality 95confidence Lower": round(confidence(quality), 3),
+            "Quality 95confidence Upper": round(confidence(quality, upper=True), 3),
+            "Quality Q25": round(np.percentile(quality, [25, 75])[0], 3),
+            "Quality Q75": round(np.percentile(quality, [25, 75])[1], 3),
             
             "Risk": round(risk, 1),
             
@@ -468,29 +492,36 @@ class MonteCarlo():
     def save_simulation_results(self, 
                                 cost, 
                                 lead_time,
+                                quality,
                                 risk,
                                 effectivness,
+                                iterations,
                                 fp_yield,
                                 cost_physical,
                                 work_eff,
                                 consitency
                                 ):
         
-        results_file = 'Architecture/Simulation_Results_only_means.csv'
+        results_file = 'Architecture/Simulation_Results_means.csv'
 
-        doe, number = self.architecture_config_name.split('-')
+        if 'Baseline' in self.architecture_config_name:
+            doe = 'Baseline'
+            number = ''
+        else:
+            doe, number = self.architecture_config_name.split('-')
         
         results_data = {
             "Name": self.architecture_config_name,
             "DOE": doe,
             "Number": number,
-            'Name': self.architecture_config_name,
             'Mean Cost': cost,
             'Mean Lead Time': lead_time,
+            'Mean Quality': quality,
             'Risk': risk,
             'Effectivness': effectivness,
+            'Average Iterations': iterations,
             'First Pass Yield': fp_yield,
-            '% Cost from physical Prot. / Test': cost_physical,
+            'Rel Cost Physical': cost_physical,
             'Work Efficency': work_eff,
             'Average Consitency': consitency
         }
@@ -833,15 +864,27 @@ def montecarlo_box_plots(cost_target, lead_time_target):
 
 
 
-def run_all_architecture_configurations(n_runs, use_seeds=True, configurations=None, create_samples=False, skip_errors=False, folder_extention=''):
+def run_all_architecture_configurations(n_runs, move_folders=False, use_seeds=True, configurations=None, create_samples=False, skip_errors=False, folder_extention=''):
     warnings.filterwarnings("ignore")
     if not configurations:
-        configurations = [os.path.basename(f.path) for f in os.scandir('Architecture/Inputs' + folder_extention) if f.is_dir()]
+        configurations = [os.path.basename(f.path) for f in os.scandir('Architecture/Inputs/' + folder_extention) if f.is_dir()]
+    
+    start_time = time.time()
+    n_total_errors = 0
+    n_configs = 0
+    configs_skipped = []
+    
+    for config in list(configurations):
+        if config in {'Product', 'completed'}:
+            configurations.remove(config)
+    
+    if not configurations:
+        print('\nNo configuration folders found\n')
+        return
     
     for config in configurations:
-        # skip product folder
-        if config in {'Product', 'skip'}:
-            continue
+        
+        n_configs += 1
         
         print('\n\n------------------------------------------------------------')
         print(f'Running Monte Carlo for {config}.')
@@ -854,8 +897,29 @@ def run_all_architecture_configurations(n_runs, use_seeds=True, configurations=N
             skip_errors=skip_errors,
             folder_extention=folder_extention
         )
-        sim.run_montecarlo(show_plots=False, create_samples=create_samples)
-     
+        result = sim.run_montecarlo(show_plots=False, create_samples=create_samples)
+        if result == 'skipped':
+            configs_skipped.append(config)
+        else:
+            n_total_errors += result
+        
+        # move folder
+        if move_folders:
+            destination = 'Architecture/Inputs/' + folder_extention + '/completed'
+            if not os.path.exists(destination):
+                os.makedirs(destination)
+            shutil.move('Architecture/Inputs/' + folder_extention + '/' + config, destination)
+            print('Configuration folder moved to \'completed\'')
+    
+    total_time = (time.time() - start_time) / 60 # min
+    
+    print('\n------------------------------------------------------------')
+    print('All runs completed\n')
+    print(f'Total time: {(total_time / 60):.1f} h')
+    print(f'Average time per configuration: {(total_time / n_configs):.1f} min')
+    print(f'Number of single runs skipped due to errors: {n_total_errors} ({(100 * n_total_errors / (n_runs * (n_configs - len(configs_skipped)))):.3f} %)\n')
+    print(f'Completely skipped configs: {configs_skipped if configs_skipped else None}')
+    
     #with open('Architecture/Inputs/goals.json', 'r') as file:
     #    goal_data = json.load(file)
 
@@ -888,7 +952,16 @@ if __name__ == "__main__":
     
     if True:
         if True:
-            run_all_architecture_configurations(n_runs=400, skip_errors=True, create_samples=False, folder_extention='/DOE2 - Interoperability')
+            run_all_architecture_configurations(
+                
+                n_runs=4, # 400
+                                                
+                move_folders=True, 
+                skip_errors=True, 
+                create_samples=False, 
+                folder_extention='DOE1 - Accuracy' #'DOE4 - Full'
+            ) 
+            
         else:
             warnings.filterwarnings("ignore")
             sim = MonteCarlo(

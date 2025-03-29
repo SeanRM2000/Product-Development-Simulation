@@ -1,11 +1,8 @@
 # Master-Thesis---Product-Development-Simulation
 An agent-based simulation to evaluate product development
 
-Potential Name: ProDevSim Studio (Planner, Manager)
 
-USE PAPER VERSION
 
-Architecture --> Inputs: Creation of Configurations for the Organization (Personnel, Tools), Goals, Product
 
 <sim_run.py> for single runs
 
@@ -15,6 +12,8 @@ Architecture --> Inputs: Creation of Configurations for the Organization (Person
 Sim settings:
 some at the bottom of the file and some in <Inputs> --> <sim_settings.py> and <tuning_params.py>
 
+Inputs:
+Architecture --> Inputs --> Creation of Configurations for the Organization (Personnel, Tools), Goals, Product
 
 
 
@@ -30,3 +29,6 @@ Some remarks to additional functionalities not discussed in the thesis:
 7. Some artefacts in the input data were kept to allow for the simulation to function after some changes to the logic were made. These do not have an impact on the simulation itself. (e.g. Project Manager)
 8. Some properties and entities have been named differently in the thesis for better understanding
 --> Generally limitations are: One-to-One assignment of all design/system design activities is required, and no overlapping of tasks is allowed
+
+
+Potential Name: ProDevSim Studio (Planner, Manager)
