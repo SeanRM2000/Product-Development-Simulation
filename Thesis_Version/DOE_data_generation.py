@@ -38,7 +38,7 @@ def update_agents_digital_literacy(data, new_value, agent_names):
             update_agents_digital_literacy(item, new_value, agent_names)
     return data
 
-def update_tools(data, accuracy_factor, tool_complexity=None, interop=0.5):
+def update_tools_(data, accuracy_factor, tool_complexity=None, interop=0.5):
     """
     For each tool (except the one with key "KnowledgeBase"), update:
     - The 'use_complexity' parameter (if exists) is replaced by tool_complexity.
@@ -108,7 +108,7 @@ def main():
         #org_data_updated = update_agents_digital_literacy(org_data, new_digital_lit, ['System Manager', 'Systems Engineer 1', 'Systems Engineer 2', 'System Simulation Engineer 2'])
 
         # Update the tools.json data
-        tools_data_updated = update_tools(tools_data, new_accuracy_factor)#, tool_complexity=new_digital_lit)#, interop=new_interoperability)
+        tools_data_updated = update_tools_(tools_data, new_accuracy_factor)#, tool_complexity=new_digital_lit)#, interop=new_interoperability)
 
         # Write the updated JSON files into the new folder
         with open(os.path.join(folder_name, "organization.json"), "w") as f:
@@ -208,9 +208,89 @@ def doe4():
         
         with open(os.path.join(folder_name, "tools.json"), "w") as f:
             json.dump(new_tool_data, f, indent=4)
+
+
+def doe4_alt():
+    
+    def update_dl(data, new_value, type):
+
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if key == "digital_literacy" and isinstance(value, dict):
+                    if type in value: 
+                        value[type] = new_value
+                else:
+                    update_dl(value, new_value, type)
+        elif isinstance(data, list):
+            for item in data:
+                update_dl(item, new_value, type)
+        return data
+    
+    def update_tools(data, tool, accuracy, interop, tool_complexity=None):
+
+        for tool_name, tool_data in data.items():
+            if tool_name == tool:
+                tool_data["parameters"]["accuracy"] = accuracy
+                tool_data["parameters"]["interoperability"] = interop
+                
+                if tool_complexity:
+                    tool_data["parameters"]["use_complexity"] = tool_complexity
             
+        return data
+        
+    
+    with open('Architecture/Inputs/Baseline/organization.json', "r") as f:
+        org_data_orig = json.load(f)
+    with open('Architecture/Inputs/Baseline/tools_with_new.json', "r") as f:
+        tools_data_with_new = json.load(f)
+    with open('Architecture/Inputs/Baseline/tools.json', "r") as f:
+        tools_data_orig = json.load(f)
+        
+    configs_df = pd.read_csv("DOE/DOE_4.csv")
+    
+    for index, row in configs_df.iterrows():
+        config = f'DOE4-{index+1}'
+        folder_name = 'Architecture/Inputs/DOE4 - Full/' + config
+        
+        digital_lit_Eng = row["DL_Eng"]
+        digital_lit_EKM = row["DL_EKM"]
+        NewTool = row["New Tool"]
+        new_tool_acc = row["T_Acc (new)"]
+        new_tool_inter = row["T_I (new)"]
+        new_tool_usab = row["T_Usab"]
+        
+
+        os.makedirs(folder_name, exist_ok=True)
+        
+        org_data = copy.deepcopy(org_data_orig)
+        new_org_data = update_dl(org_data, digital_lit_EKM, 'EngineeringSupportTools')
+        new_org_data = update_dl(new_org_data, digital_lit_Eng, 'EngineeringTools')
+        
+        with open(os.path.join(folder_name, "organization.json"), "w") as f:
+            json.dump(new_org_data, f, indent=4)
+        
+        
+        if NewTool == True:
+            tools_data = copy.deepcopy(tools_data_with_new)
+            new_tool_data = update_tools(tools_data, 'HFSystemSimulator', new_tool_acc, new_tool_inter, new_tool_usab)
+        else:
+            new_tool_data = copy.deepcopy(tools_data_orig)
+        
+        old_tools = ['MBSE', 'LFSystemSimulator', 'CAD', 'IDE', 'ECAD', 'FEM', 'CurcuitSimulation']
+        for tool in old_tools:
+            old_tool_acc = row[f"T_Acc ({tool})"]
+            old_tool_inter = row[f"T_I ({tool})"]
+            new_tool_data = update_tools(new_tool_data, tool, old_tool_acc, old_tool_inter)
+        
+        with open(os.path.join(folder_name, "tools.json"), "w") as f:
+            json.dump(new_tool_data, f, indent=4)
+        
+        print(f'{config} created')
+        
 
 if __name__ == "__main__":
-    main()
+    #main()
     
     #doe4()
+    
+    doe4_alt()

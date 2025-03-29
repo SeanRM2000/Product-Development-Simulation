@@ -40,12 +40,17 @@ class ArchitectureGraph:
             interfaces={},
             
             completion=False,
+            
             previous_definition_quality=0,
             definition_quality=0,
+            
             previous_design_quality=0,
             design_quality=0,
+            
             previous_overall_quality=0,
             overall_quality=0,
+            
+            
             perceived_quality={
                 'LF_System_Simulation': 0,
                 'Component_Simulation': 0,
@@ -57,7 +62,8 @@ class ArchitectureGraph:
                 'Component_Simulation': 0,
                 'HF_System_Simulation': 0,
                 'Testing': 0
-                }
+                },
+            perceived_definition_quality=None
             )
         
         # root node (overall system) has def_quality
@@ -74,13 +80,34 @@ class ArchitectureGraph:
                     severity=interface_severity,
                     complexity=round(interface_complexity, 4),
                     
-                    previous_system_definition_quality=0,
-                    system_definition_quality=0,
-                    previous_definition_quality=0,
+                    system_definition_quality=0, # not used currently
                     definition_quality=0,
-                    previous_design_quality=0,
-                    design_quality=0
+                    product_knowledge_used=0,
+                    info_used=[],
+                    old_info=None,
+                    
+                    perceived_interface_quality=None
                     )
+
+        
+    def calc_interface_quality(self, edge):
+        edge_data = self.architecture.edges[edge]
+        
+        if not edge_data['info_used'] and edge_data['old_info'] == None:
+            raise ValueError(f'Interface Quality for {edge} was called without information for it existing.')
+        
+        if not edge_data['info_used']:
+            return edge_data['product_knowledge_used'] * (edge_data['definition_quality'] + (1 - edge_data['definition_quality'] ) * edge_data['old_info'])
+        else:
+            sum_info_used = 0
+            n = len(edge_data['info_used'])
+            for comp, cons in edge_data['info_used']:
+                sum_info_used += comp * cons
+            
+            return edge_data['product_knowledge_used'] * (edge_data['definition_quality'] + (1 - edge_data['definition_quality'] ) * sum_info_used / n) 
+        
+        
+
 
     def _calculate_interface_complexity(self, node1_name, node2_name, interface_severity):
         node1 = self.architecture.nodes[node1_name]
@@ -456,8 +483,9 @@ if __name__ == "__main__":
 
     architecture_graph.show_architecture(show_plot=True)
     
-    for node, data in architecture_graph.architecture.nodes(data=True):
-        print(node, ': ', data['interfaces'])
-        print(f'{node}: {data['overall_complexity']}')
-        print(f'{node}: {data['development_complexity']}')
-        print(f'{node}: {data['technical_complexity']}')
+    print(architecture_graph.get_all_hierarchical_descendants('Arms'))
+    #for node, data in architecture_graph.architecture.nodes(data=True):
+     #   print(node, ': ', data['interfaces'])
+       # print(f'{node}: {data['overall_complexity']}')
+      #  print(f'{node}: {data['development_complexity']}')
+        #print(f'{node}: {data['technical_complexity']}')

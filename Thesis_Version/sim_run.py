@@ -37,10 +37,12 @@ class PDsim:
                  enable_timeout = True,
                  montecarlo=False, 
                  log_events=False, slow_logs=False,
+                 print_status=True,
                  random_seed=None
                  ):
         
         self.log_events = log_events
+        self.print_status = print_status
         self.slow_logs = slow_logs
         self.montecarlo = montecarlo
         
@@ -148,13 +150,12 @@ class PDsim:
         self.effort_breakdown = {}
         self.effort_backlog_agents = {}
         self.personnel_tracker = {}
+        self.active_agents = {}
         for agent in self.org_network.all_agents:
             self.personnel_tracker[agent] = ['Idle']
             self.effort_backlog_agents[agent] = [0]
             self.effort_breakdown[agent] = {}
-        self.effort_backlog_teams = {}
-        for team in self.org_network.all_teams:
-            self.effort_backlog_teams[team] = [0]
+            self.active_agents[agent] = [0]
         
         self.activity_rework_counter = {}
         self.gantt_tracker = {}
@@ -212,7 +213,7 @@ class PDsim:
             self.collect_data()
             
             # timer status update
-            if not self.montecarlo and not self.log_events:
+            if not self.montecarlo and not self.log_events and self.print_status:
                 print(f'\rSimulation running... ({(time.time() - start_time):.1f} s)', end="", flush=True)
             
             # timeout error
@@ -281,7 +282,7 @@ class PDsim:
                     if self.check_feasibility_problem(agent, agent_task):
                         continue
                     
-                # tool problems could also be added here
+                ####### tool problems could also be added here
             
             # update remaining effort
             task_info['remaining_effort'] -= step_size
@@ -303,31 +304,18 @@ class PDsim:
         definition_quality = self.architecture.nodes[architecture_element]['definition_quality']
         
         
-        # rework caused by missing feasibility leads to increased probability for detection
-        if self.task_network.nodes[task]['repetitions'] > 1:
-            element_data = self.architecture.nodes[architecture_element]
-            previous_quality = element_data['previous_design_quality']
-            perceived_quality = min([value for value in element_data['previous_perceived_quality'].values() if value > previous_quality], default=1)
-            missing_overall_quality = 1 - perceived_quality
-            missing_design_quality = 1 - perceived_quality / definition_quality
-            increase = missing_overall_quality - missing_design_quality
-        else:
-            increase = 0
-        
         # calculate probability to detect problem
         tool = self.activity_network.nodes[activity]['tool']
         tool_acc = 0 if self.tools[tool]['accuracy'] is None else self.tools[tool]['accuracy']
         digital_literacy = self.calc_EngTool_effectivness(agent, tool, use_excess=False)
         competency = self.org_network.get_agent(agent)['task_queue'][task]['additional_info']['competency']
-        if competency > 1:
-            competency = 1
         
         accuracy = tool_acc * digital_literacy + competency
         
         nominal_effort = self.org_network.get_agent(agent)['task_queue'][task]['nominal_effort']
         real_effort = self.org_network.get_agent(agent)['task_queue'][task]['inital_effort']
         
-        detection_rate = feasibility_detection_rate_factor * (1 - definition_quality) * accuracy * (1 + increase)
+        detection_rate = feasibility_detection_rate_factor * (1 - definition_quality) * accuracy
         detection_probability = 1 - np.exp(-detection_rate * nominal_effort / real_effort * step_size)
         
         if detection_probability < random.random():
@@ -340,12 +328,12 @@ class PDsim:
             parent_element = self.architecture_class.get_parent(architecture_element)
             parent_element_agent = self.architecture.nodes[parent_element]['responsible_designer']
             
-            perceived_feasibility, _ = self.calc_perceived_quality(definition_quality, accuracy, upper_limit_acc=2)
-            
             ###### technically would have to add some rework to the system design activity
             
             # pause activity
             self.activity_network.nodes[activity]['activity_status'] = 'Interface or Feasibility Problem'
+            
+            perceived_feasibility = 1 # not used currently
             
             if self.check_if_idle(agent) and self.check_if_idle(parent_element_agent):
                 self.start_collaboration(task, parent_element_agent, agent, architecture_element, perceived_feasibility, 'Feasibility')
@@ -740,14 +728,7 @@ class PDsim:
                 
             elif new_info == 0 and self.task_network.nodes[task]['first_task']:    
                 info_amounts.append(0) # needed for reduced work of virtual integration and prototyping
-                
-            elif new_info < 0:
-                if round(new_info, 6) == 0:
-                    warnings.warn(f'New info was a small negativ number ({new_info}). It was set to zero.')
-                    new_info = 0
-                    info_amounts.append(0)
-                else:
-                    raise ValueError(f'New information on {element} for {agent} is negative ({new_info}).')
+
         
         # reduced work required when reworking depending on amount of new information
         if self.task_network.nodes[task]['first_task'] and activity_type in {'Virtual_Integration', 'Prototyping'}:
@@ -815,6 +796,14 @@ class PDsim:
             print(f'        Knowledge Base: Cons: {knowledge_base_info_consitency:.3f}, Comp: {knowledge_base_completeness:.3f}')
             raise ValueError(f'{agent} has better information on {element} than knowledge base.') # information is always first pushed to KB
         
+        
+        if new_info < 0:
+            if round(new_info, 6) == 0:
+                new_info = 0
+                warnings.warn(f'New info was a small negativ number ({new_info}). It was set to zero.')
+            else:
+                raise ValueError(f'New information on {element} for {agent} is negative ({new_info}).')
+        
         return new_info
         
         
@@ -863,7 +852,7 @@ class PDsim:
         
         # Event log
         if self.log_events:
-            self.event_logger(f'Technical problem ({self.org_network.knowledge_items[problem_knowledge_item]} - Req: {req_knowledge_level} ({problem_knowledge_level:.2f}) Has: {expertise[problem_knowledge_item]:.2f}) with "{task}" occured for {agent}.')
+            self.event_logger(f'Technical problem ({self.org_network.knowledge_items[problem_knowledge_item]}; Req: {req_knowledge_level} ({problem_knowledge_level:.2f}) Has: {expertise[problem_knowledge_item]:.2f}) with "{task}" occured for {agent}.')
         
         expert_to_consult = self.find_expert(agent, problem_knowledge_item, problem_knowledge_level, search_criteria='team', only_idle=True)
         
@@ -893,7 +882,7 @@ class PDsim:
             self.event_logger(f'Collaboration because of {type} problem with {element} between {requesting_agent} and {responsible_agent} started.')
         
         # defined here to be equal for both
-        effort = random.triangular(consultation_effort_min, consultation_effort_max)
+        effort = random.triangular(collaboration_effort_min, collaboration_effort_max)
         
         # create tasks
         self.assign_task(
@@ -987,7 +976,7 @@ class PDsim:
                 # use worst perceived quality, 1 if no perceived quality (no gain possible)
                 previous_quality = element_data['previous_design_quality']
                 perceived_quality = min([value for value in element_data['previous_perceived_quality'].values() if value > previous_quality], default=1) 
-                element_data['design_quality'] = previous_quality + feasibility * (1 - perceived_quality) * competency
+                element_data['design_quality'] = previous_quality +  max(0, feasibility - perceived_quality) * competency
             
 
         # activity information
@@ -1049,14 +1038,15 @@ class PDsim:
                                 comp2 = help_fnc.calc_efficiency_competency(self.architecture.nodes[interface[1]]['knowledge_req'], expertise)[1]
                                 pk1 = agent_data['product_knowledge'][interface[0]]
                                 pk2 = agent_data['product_knowledge'][interface[1]]
-                                self.architecture.edges[interface]['definition_quality'] = ((pk1 + (1 - pk1) * comp1) + (pk2 + (1 - pk2) * comp2)) / 2
+                                # self.architecture.edges[interface]['definition_quality'] = ((pk1 + (1 - pk1) * comp1) + (pk2 + (1 - pk2) * comp2)) / 2
+                                self.architecture.edges[interface]['definition_quality'] = (pk1 + pk2) / 2
                                 
                                 # log event
                                 if self.log_events:
                                     self.event_logger(f'     Interface Feasibility from {interface[0]} to {interface[1]}: {self.architecture.edges[interface]['definition_quality']:.3f}')
                                 
                             else: # system definition quality ? --> is the high level feasibility of the actual interfaces 
-                                  # --> needed to defne the actual feasibility of an interface
+                                  # --> needed to defne the actual feasibility of an interface --> enable info exchange on system level
                                 pass
 
 
@@ -1080,15 +1070,14 @@ class PDsim:
                 for edges in self.architecture.nodes[architecture_element]['interfaces'].values():
                     for edge in edges:
                         product_knowledge_of_interface = agent_data['product_knowledge'][edge[1]]
-                        def_quality = self.architecture.edges[edge]['definition_quality']
                         info_completeness = self.org_network.get_agent(agent)['product_information_completeness'][edge[1]][activity_type]
                         info_consitency = self.org_network.get_agent(agent)['product_information_consitency'][edge[1]][activity_type]
-                        self.architecture.edges[edge]['design_quality'] = product_knowledge_of_interface * (def_quality * feasibility_for_interface_quality_factor + # this should be dynamic technically
-                                                                                                            (1 - def_quality * feasibility_for_interface_quality_factor) * info_completeness * info_consitency)
-
+                        self.architecture.edges[edge]['product_knowledge_used'] = product_knowledge_of_interface
+                        self.architecture.edges[edge]['info_used'].append((info_completeness, info_consitency))
+                        
                         # log event
                         if self.log_events:
-                            self.event_logger(f'     Interface Quality from {edge[0]} to {edge[1]}: {self.architecture.edges[edge]['design_quality']:.3f}')
+                            self.event_logger(f'     Interface Quality from {edge[0]} to {edge[1]}: {self.architecture_class.calc_interface_quality(edge):.3f}')
             
             
             case 'Prototyping' | 'Virtual_Integration':
@@ -1119,7 +1108,7 @@ class PDsim:
                             weighted_interface_quality = 0
                             for edge in relevant_edges:
                                 interface_complexity = self.architecture.edges[edge]['complexity']   
-                                interface_quality = self.architecture.edges[edge]['design_quality'] # here the information that has been used to create the interface could be tracked individually
+                                interface_quality = self.architecture_class.calc_interface_quality(edge)
                                 
                                 sum_of_interface_complexities += interface_complexity
                                 weighted_interface_quality += interface_quality * interface_complexity
@@ -1263,12 +1252,29 @@ class PDsim:
             completion = ( self.activity_network.nodes[quant_activity]['n_completed_tasks'] - 1 ) / self.activity_network.nodes[quant_activity]['num_tasks']
             
             # get activity that is impacted
-            directly_impacted_activities = []
-            qualities = []
+            directly_impacted_activities = {}
             match activity_type:
                 case 'Component_Simulation' | 'LF_System_Simulation':  # always have only one predecessor (design or system design)
-                    directly_impacted_activities.append(next(self.activity_network.predecessors(quant_activity)))
-                    qualities.append(perceived_quality)
+                    
+                    directly_impacted_activities[next(self.activity_network.predecessors(quant_activity))] = perceived_quality
+                    
+                    definition_quality = self.architecture.nodes[architecture_element]['definition_quality']
+                    design_quality = self.architecture.nodes[architecture_element]['design_quality']
+                    if design_quality >= definition_quality: # design quality issues caused by feasibility
+                        self.architecture.nodes[architecture_element]['perceived_definition_quality'] = 0
+                        
+                        if self.log_events:
+                            self.event_logger(f'Feasibility of {architecture_element} has to be reworked.')
+                            
+                    else: # decrease feasibility perceived quality if design and feas
+                        missingQ = 1 - design_quality
+                        missingD = 1 - design_quality / definition_quality
+                        missingF = missingQ - missingD
+                        self.architecture.nodes[architecture_element]['perceived_definition_quality'] *= (1 - missingF / missingQ)
+                    
+                        if self.log_events:
+                            self.event_logger(f'Design of {architecture_element} has to be reworked.')
+                    
                     
                 case 'HF_System_Simulation' | 'Testing':            
 
@@ -1281,83 +1287,141 @@ class PDsim:
                                                        if interface in descendants for edge in edges])
                     
                     # get actual causes and weights (for selection)
+                    rework_causes = []
                     possible_causes = []
+                    possible_rework_causes = sorted(list(possible_rework_causes), key=help_fnc.sort_key)
                     for cause in possible_rework_causes:
                         if isinstance(cause, tuple): # edge
-                            quality = (self.architecture.edges[cause[0], cause[1]]['design_quality'])
-                            cause = cause[0] # cause is the outgoing node
+                            quality = self.architecture.edges[cause]['perceived_interface_quality']
+                            causing_element = cause[0]
+                            type = 'interface'
                         else: # node
-                            quality = self.architecture.nodes[cause]['design_quality']
+                            if cause == architecture_element:
+                                quality = self.architecture.nodes[cause]['perceived_quality'][activity_type]
+                            else:
+                                quality = self.architecture.nodes[cause]['perceived_quality'][f'Higher_Level_From_{quant_activity}']
+                                
+                            causing_element = cause
                             if self.architecture.nodes[cause].get('procure', False):
-                                # sets parent as cause for suopplier parts
-                                cause = self.architecture_class.get_parent(cause)
+                                type = 'procure'
+                            else:
+                                type = 'design'
                         
                         if quality < 1:
-                            possible_causes.append((cause, quality))
-                        
-                    # check what descendent caused problem rework (can also include original element)
-                    rework_causes = []
-                    rework_qualities = []
-                    possible_causes = sorted(possible_causes)
-                    for cause, quality in possible_causes:
-                        
-                        if random.random() > quality:
-                            if cause in rework_causes:
-                                index = rework_causes.index(cause)
-                                if rework_qualities[index] <= quality:
-                                    continue # skip selection
-                                else:
-                                    rework_qualities[index] = quality
-                            else:
-                                rework_causes.append(cause)
-                                rework_qualities.append(quality)
+                            possible_causes.append((cause, causing_element, quality, type))
                             
-                    
+                            if random.random() > quality: 
+                                rework_causes.append((cause, causing_element, quality, type))
+                           
+                            
                     # in none where selected make weighted choice
                     if not rework_causes:
-                        total_weight = sum([1 / quality for _, quality in possible_causes])
-                        normalized_weights = [(1 / quality) / total_weight for _, quality in possible_causes]
+                        total_weight = sum([1 / quality for _, _, quality, _ in possible_causes])
+                        normalized_weights = [(1 / quality) / total_weight for _, _, quality, _ in possible_causes]
                         selected_index = random.choices(range(len(possible_causes)), weights=normalized_weights, k=1)[0]
-                        selected_cause, selected_quality = possible_causes[selected_index]
-                        rework_qualities.append(selected_quality)
-                        rework_causes.append(selected_cause)
+                        rework_causes.append(possible_causes[selected_index])
 
-                    # delete unnecessary causes
+                    # delete unnecessary causes 
                     if len(rework_causes) > 1:
+                        all_causing_elements = set()
+                        for _, causing_element, _, _ in rework_causes:
+                            all_causing_elements.add(causing_element)
+                            
                         for cause in list(rework_causes):
-                            for ancestor in self.architecture_class.get_all_ancestors(cause):
-                                if ancestor in rework_causes:
+                            for ancestor in self.architecture_class.get_all_ancestors(cause[1]):
+                                if ancestor in all_causing_elements:
                                     index = rework_causes.index(cause)
                                     rework_causes.pop(index)
-                                    rework_qualities.pop(index)
                                     break # no need to further check this cause
 
                     # get impacted activities
-                    for cause, quality in sorted(zip(rework_causes, rework_qualities)):
-                        if self.architecture_class.get_hierarchical_children(cause):
-                            activity_type = 'System_Design'
+                    for cause, causing_element, perceived_quality, type in rework_causes:
+                        
+                        if self.architecture_class.get_hierarchical_children(causing_element):
+                            impacted_activity_type = 'System_Design'
                         else:
-                            activity_type = 'Design'
+                            impacted_activity_type = 'Design'
+                        
+                        impacted_activity = self.activity_network_class.generate_activity_name(causing_element, impacted_activity_type)
+                        
+                        # quality used to determine rework amount
+                        if type == 'interface':
+                            cause_quality = self.architecture_class.calc_interface_quality(cause)
+                        else:
+                            cause_quality = self.architecture.nodes[cause]['design_quality']
+                        
+                        if impacted_activity in directly_impacted_activities:
+                            directly_impacted_activities[impacted_activity] *= cause_quality  
+                        else:
+                            directly_impacted_activities[impacted_activity] = cause_quality
+                        
+                        # perceived quality of interface or feasibility is set to 0 if it was the cause --> starts collaboration otherwise there only is a chance to start collab
+                        if type == 'interface':
+                            if self.log_events:
+                                self.event_logger(f'Interface from {cause[0]} to {cause[1]} has to be reworked.')
+                            
+                            self.architecture.edges[cause]['perceived_interface_quality'] = 0
+                            
+                        elif type == 'procure': # feasibility problem
+                            if self.log_events:
+                                self.event_logger(f'Feasibility of {cause} has to be reworked.')
+                                
+                            self.architecture.nodes[cause]['perceived_definition_quality'] = 0
+                            
+                        else: # design checks
+                            definition_quality = self.architecture.nodes[cause]['definition_quality']
+                            design_quality = self.architecture.nodes[cause]['design_quality']
+                            if design_quality >= definition_quality: # design quality issues caused by feasibility
+                                self.architecture.nodes[cause]['perceived_definition_quality'] = 0
+                                
+                                if self.log_events:
+                                    self.event_logger(f'Feasibility of {cause} has to be reworked.')
+                                    
+                            else: # decrease feasibility perceived quality if design and feas
+                                missingQ = 1 - design_quality
+                                missingD = 1 - design_quality / definition_quality
+                                missingF = missingQ - missingD
+                                self.architecture.nodes[cause]['perceived_definition_quality'] *= (1 - missingF / missingQ)
+                            
+                                if self.log_events:
+                                    self.event_logger(f'Design of {cause} has to be reworked.')
+                                
 
-                        cause_perceived_quality = self.calc_perceived_quality(quality, accuracy, uncertainty)
-                        qualities.append(cause_perceived_quality)
-                        directly_impacted_activities.append(self.activity_network_class.generate_activity_name(cause, activity_type))
 
             # Event log
             if self.log_events:
-                self.event_logger(f'"{task}" failed due to quality issues ({round(completion * 100)}% completion - overall quality: {round(perceived_quality, 3)}). {", ".join([f'"{activity}" ({quality})' for activity, quality in zip(directly_impacted_activities, qualities)])} have to be reworked.')
+                self.event_logger(f'"{task}" failed due to quality issues ({round(completion * 100)}% completion - overall quality: {round(perceived_quality, 3)}). {", ".join([f'"{activity}" ({quality})' for activity, quality in directly_impacted_activities.items()])} have to be reworked.')
             
             # trigger rework and reset testing activity
             self.reset_activities([quant_activity], 'Interrupted')
             activities_to_reset = set()
             tasks_ready = []
             all_impacted_elements = set()
-            for impacted_activity, quality in zip(directly_impacted_activities, qualities):
+            for impacted_activity, quality in directly_impacted_activities.items():
                 tasks_ready.extend(self.activity_rework(impacted_activity, (1 - quality)))
 
-                # reset knowledge
                 impacted_element = self.activity_network.nodes[impacted_activity]['architecture_element']
                 
+                # reset information used on interfaces
+                if activity_type not in {'LF_System_Simulation', 'Component_Simulation'} and self.architecture_class.get_hierarchical_children(architecture_element):
+                    if self.architecture_class.get_hierarchical_children(impacted_element):
+                        for element_component in self.architecture_class.get_all_components(impacted_element):
+                            for _, edge in self.architecture.nodes[element_component]['interfaces'].items():
+                                edge = edge[0]
+                                
+                                sum_info_used = 0
+                                n_info = len(self.architecture.edges[edge]['info_used'])
+                                for comp, cons in self.architecture.edges[edge]['info_used']:
+                                    sum_info_used += comp * cons
+
+                                average_info_used = sum_info_used / n_info
+                                                
+                                self.architecture.edges[edge]['info_used'] = []
+                                self.architecture.edges[edge]['old_info'] = average_info_used
+                    else:
+                        self.reset_interface_information(impacted_element, (1 - quality))
+                
+                # reset 
                 if activity_type in {'LF_System_Simulation', 'Component_Simulation'}:
                     self.update_knowledge_quality(impacted_element, quality, second_order_rework=False)
                     
@@ -1380,7 +1444,7 @@ class PDsim:
                 self.reset_activities(list(activities_to_reset), 'Rework Required')
             
                 # check other activities that have been completed or ongoing (for second order rework, that might trigger rework for ongoing work)
-                self.check_successor_rework(directly_impacted_activities)
+                self.check_successor_rework(list(directly_impacted_activities))
             
             # information sharing task
             info_amount = completion * self.activity_network.nodes[quant_activity]['effort']
@@ -1393,39 +1457,43 @@ class PDsim:
         architecture_element = self.task_network.nodes[task]['architecture_element']
         activity = self.task_network.nodes[task]['activity_name']
         activity_type = self.activity_network.nodes[activity]['activity_type']
+        n_tasks_completed = self.activity_network.nodes[activity]['n_completed_tasks']
         
         tool = self.org_network.get_agent(agent)['task_queue'][task]['tool']
         tool_info = self.tools[tool]
 
-
-        if activity_type == 'LF_System_Simulation':
-            actual_quality = self.architecture.nodes[architecture_element]['design_quality']
-        else:
-            actual_quality = self.architecture.nodes[architecture_element]['overall_quality']
         
         tool_accuracy = tool_info['accuracy']
         agent_competency = self.org_network.get_agent(agent)['task_queue'][task]['additional_info']['competency']
-        if agent_competency > 1:
-            agent_competency = 1
-        
         accuracy = tool_accuracy * agent_competency * self.calc_EngTool_effectivness(agent, tool, use_excess=False) # 1 for perfect quantification, 0 for bad quantification
-        perceived_quality, uncertainty = self.calc_perceived_quality(actual_quality, accuracy)
-
         
-        n_tasks_completed = self.activity_network.nodes[activity]['n_completed_tasks']
-        if activity_type != 'LF_System_Simulation': # all other activities have to use design quality to specify perceived qualities of elements --> needed for rework
-            perceived_quality_to_use = self.calc_perceived_quality(self.architecture.nodes[architecture_element]['design_quality'], accuracy, uncertainty)
+        if activity_type == 'LF_System_Simulation':
+            quality_type = 'design_quality'
         else:
-            perceived_quality_to_use = perceived_quality
-        self.architecture.nodes[architecture_element]['perceived_quality'][activity_type] = self.calc_mean_quality_update(architecture_element, activity_type, n_tasks_completed, perceived_quality_to_use)
+            quality_type = 'overall_quality'
+        perceived_quality, uncertainty = self.calc_perceived_quality(architecture_element, quality_type, activity_type, accuracy, n_tasks_completed)
+        
+        # all other activities have to use design quality to specify perceived qualities of elements --> needed for rework
+        if activity_type != 'LF_System_Simulation':
+            self.calc_perceived_quality(architecture_element, 'design_quality', activity_type, accuracy, n_tasks_completed, uncertainty)
+
+        # perceived_feasibility
+        self.calc_perceived_quality(architecture_element, 'definition_quality', activity_type, accuracy, n_tasks_completed, uncertainty)
         
         # perceived quality of lower level elements
         if self.architecture_class.get_hierarchical_children(architecture_element) and activity_type in {'HF_System_Simulation', 'Testing'}:
             for decendant in self.architecture_class.get_all_hierarchical_descendants(architecture_element):
-                actual_quality_decendant = self.architecture.nodes[decendant]['design_quality']
-                perceived_quality_hl = self.calc_perceived_quality(actual_quality_decendant, accuracy, uncertainty)
                 quality_to_reset = f'Higher_Level_From_{activity}'
-                self.architecture.nodes[decendant]['perceived_quality'][quality_to_reset] = self.calc_mean_quality_update(decendant, quality_to_reset, n_tasks_completed, perceived_quality_hl)
+                
+                # design quality and feasibility
+                self.calc_perceived_quality(decendant, 'design_quality', quality_to_reset, accuracy, n_tasks_completed, uncertainty)
+                self.calc_perceived_quality(decendant, 'definition_quality', quality_to_reset, accuracy, n_tasks_completed, uncertainty)
+                
+                # interface quality
+                if not self.architecture_class.get_hierarchical_children(decendant):
+                    for _, edge in self.architecture.nodes[decendant]['interfaces'].items():
+                        self.calc_perceived_quality(edge[0], 'interface_quality', quality_to_reset, accuracy, n_tasks_completed, uncertainty)
+                
         
         return perceived_quality, uncertainty, accuracy
     
@@ -1439,7 +1507,13 @@ class PDsim:
             return new_quality
     
     
-    def calc_perceived_quality(self, actual_quality, accuracy, uncertainty=None, upper_limit_acc=1):
+    def calc_perceived_quality(self, element, quality_type, quality_to_reset, accuracy, tasks_completed, uncertainty=None, upper_limit_acc=1):
+        
+        if quality_type == 'interface_quality':
+            actual_quality = self.architecture_class.calc_interface_quality(element)
+        else:
+            actual_quality = self.architecture.nodes[element][quality_type]
+        
         if accuracy < 0 or accuracy > upper_limit_acc:
             raise ValueError(f'Accuracy has to be between 0 and {upper_limit_acc}')
         
@@ -1453,6 +1527,19 @@ class PDsim:
         else:
             return_uncertainty = False
         perceived_quality = actual_quality + (upper_limit - actual_quality) * uncertainty
+        
+        if quality_type == 'design_quality':
+            if use_uncertainty_for_validation:
+                self.architecture.nodes[element]['perceived_quality'][quality_to_reset] = self.calc_mean_quality_update(element, quality_to_reset, tasks_completed, perceived_quality)
+            else:
+                self.architecture.nodes[element]['perceived_quality'][quality_to_reset] = perceived_quality
+        
+        
+        # this is a bit quick and dirty --> would have to be done similar to the design quality
+        elif quality_type == 'interface_quality':
+            self.architecture.edges[element]['perceived_interface_quality'] = perceived_quality
+        elif quality_type == 'definition_quality':
+            self.architecture.nodes[element]['perceived_definition_quality'] = perceived_quality
         
         if return_uncertainty:
             return perceived_quality, uncertainty
@@ -1474,7 +1561,7 @@ class PDsim:
         
         for activity, act_data in self.activity_network.nodes(data=True):
             if activity not in activities:
-                if act_data['activity_status'] not in {'Waiting', 'Rework Required', 'Interrupted', 'Interface or Feasibility Problem'}: # in 'In Progress', 'Completed'
+                if act_data['activity_status'] not in {'Waiting', 'Rework Required', 'Interrupted'}: # in 'In Progress', 'Completed'
                         for orginating_activity in activities:
                             if (act_data['architecture_element'] in dependent_elements[orginating_activity] 
                                 and nx.has_path(self.activity_network, orginating_activity, activity)): # if activity is downstream activity of one of the activities that has to be reset
@@ -1486,6 +1573,7 @@ class PDsim:
     
     
     def incomplete_quality_update(self, element, quality_to_update, completion_level): # reduce quality for incomplete quantification but enhance partially with other qualities
+        
         if self.architecture.nodes[element]['previous_perceived_quality'].get(quality_to_update, False):
             current_perceived_quality = self.architecture.nodes[element]['previous_perceived_quality'][quality_to_update]
             
@@ -1581,6 +1669,7 @@ class PDsim:
                         del self.org_network.get_agent(responsible_agent)['task_queue'][task_in_q]
 
 
+
     def reduce_information(self, element, reduction_percentage, first_order=False):
         # find dresponsible agent
         responsible_agent = self.architecture.nodes[element]['responsible_designer']
@@ -1632,14 +1721,6 @@ class PDsim:
                 
                     
     def reset_quality(self, element):
-        # save interface qualities
-        if not self.architecture_class.get_hierarchical_children(element):
-            interfaces = [edge for edges in self.architecture.nodes[element]['interfaces'].values() for edge in edges]
-            for edge in interfaces:
-                self.architecture.edges[edge]
-                for q_type in {'system_definition', 'definition', 'design'}: # system definition quality would have to be handeled in higher level elements as well - system def not considered however
-                    self.architecture.edges[edge][f'previous_{q_type}_quality'] = self.architecture.edges[edge][f'{q_type}_quality']
-        
         # save element qualities
         for q_type in {'definition', 'design', 'overall'}:
             self.architecture.nodes[element][f'previous_{q_type}_quality'] = self.architecture.nodes[element][f'{q_type}_quality']
@@ -1677,7 +1758,38 @@ class PDsim:
         if second_order_rework:
             reset_hierarchicaly_dependent_elements(architecture_element, reduction_percentage)
 
+    
+    def reset_interface_information(self, element, rework_percentage):
+        for _, edge in self.architecture.nodes[element]['interfaces'].items():
+            
+            edge = edge[0]
+            
+            if self.architecture.edges[edge]['info_used']:
+
+                sum_info_used = 0
+                n_info = len(self.architecture.edges[edge]['info_used'])
                 
+                for comp, cons in self.architecture.edges[edge]['info_used']:
+                    sum_info_used += comp * cons
+
+                average_info_used = sum_info_used / n_info
+                
+                n_entries_to_reset = max(math.ceil(rework_percentage * n_info), 1)
+                
+                n_cut = n_info - n_entries_to_reset
+                
+                old_info_used = []
+                for _ in range(n_cut):
+                    old_info_used.append((average_info_used, 1))
+                
+                self.architecture.edges[edge]['info_used'] = old_info_used
+                
+                # fall back
+                if n_cut == 0:
+                    self.architecture.edges[edge]['old_info'] = average_info_used
+
+
+    
     def activity_rework(self, activity, rework_percentage):
         activity_info = self.activity_network.nodes[activity]
         total_tasks = activity_info['num_tasks']
@@ -1686,7 +1798,8 @@ class PDsim:
             activity_info['activity_status'] = 'Rework Required'
             
             n_tasks_to_rework = max(math.ceil(rework_percentage * total_tasks), 1)
-
+            n_completed = total_tasks
+            
             # get tasks to be reworked
             tasks = activity_info['tasks'].copy()
             tasks_with_no_rework = []
@@ -1710,17 +1823,22 @@ class PDsim:
                     
             n_completed = len(completed_tasks)
             
-            n_tasks_to_rework = max(math.ceil(rework_percentage * n_completed), 1)
-            
-            tasks_with_no_rework = []
-            for _ in range(n_completed - n_tasks_to_rework):
-                task = completed_tasks.pop(0)
-                tasks_with_no_rework.append(task)
-            tasks_to_be_reworked = completed_tasks
+            if n_completed == 0:
+                n_tasks_to_rework = 0
+                tasks_to_be_reworked = []
+                tasks_with_no_rework = []
+            else:
+                n_tasks_to_rework = max(math.ceil(rework_percentage * n_completed), 1)
+                
+                tasks_with_no_rework = []
+                for _ in range(n_completed - n_tasks_to_rework):
+                    task = completed_tasks.pop(0)
+                    tasks_with_no_rework.append(task)
+                tasks_to_be_reworked = completed_tasks
             
         
         # reset activity and tasks to be reworked
-        self.activity_network.nodes[activity]['n_completed_tasks'] -= n_tasks_to_rework
+        self.activity_network.nodes[activity]['n_completed_tasks'] = n_completed - n_tasks_to_rework
         for task in tasks_to_be_reworked:
             self.task_network.nodes[task]['task_status'] = 'Rework Required'
             self.task_network.nodes[task]['completed'] = False
@@ -1838,26 +1956,20 @@ class PDsim:
                     new_info = self.calculate_new_information(architecture_element, dependent_element_agent, agent_info_completeness, agent_info_consitency, knowledge_base_completeness, knowledge_base_info_consitency)
                     
                     # system engineer does not have to check if no new information is available
-                    if new_info == 0:
-                        continue
-                    elif new_info < 0:
-                        if round(new_info, 6) == 0:
-                            warnings.warn(f'New info was a small negativ number ({new_info}). It was set to zero.')
-                        else:
-                            raise ValueError(f'New information on {architecture_element} for {agent} is negative ({new_info}).')
-                    
-                    # relevant information based on interface complexity
-                    interface_complexity = self.architecture.edges[interface]['complexity']
-                    technical_complexity = self.architecture.nodes[architecture_element]['technical_complexity']
-                    total_interface_complexity = self.architecture.nodes[architecture_element]['total_interface_complexity']
-                    info_percentage = interface_complexity / (technical_complexity + total_interface_complexity)
-                    
-                    info_amount = self.activity_network.nodes[activity]['effort'] * info_percentage * new_info
-                    
-                    # sum up information needed
-                    if dependent_element_agent not in info_to_check:
-                        info_to_check[dependent_element_agent] = 0
-                    info_to_check[dependent_element_agent] += info_amount
+                    if new_info > 0:
+
+                        # relevant information based on interface complexity
+                        interface_complexity = self.architecture.edges[interface]['complexity']
+                        technical_complexity = self.architecture.nodes[architecture_element]['technical_complexity']
+                        total_interface_complexity = self.architecture.nodes[architecture_element]['total_interface_complexity']
+                        info_percentage = interface_complexity / (technical_complexity + total_interface_complexity)
+                        
+                        info_amount = self.activity_network.nodes[activity]['effort'] * info_percentage * new_info
+                        
+                        # sum up information needed
+                        if dependent_element_agent not in info_to_check:
+                            info_to_check[dependent_element_agent] = 0
+                        info_to_check[dependent_element_agent] += info_amount
                     
                 else:
                     agents_not_checking_information.append(dependent_element_agent)
@@ -1905,21 +2017,22 @@ class PDsim:
             
             activity = self.task_network.nodes[suc_task]['activity_name']
             
+            # rework information has to be received
+            if task_info.get('rework_info', False):
+                self.assign_task(self.activity_network.nodes[activity]['assigned_to'], 
+                                    task_type='Receive_Information', 
+                                    info={'task': suc_task, 'info_amount': info_amount / n_tasks, 'rework_info': True})
+            
             if self.task_network.nodes[suc_task]['task_status'] in {'Waiting', 'Rework Required'}:
                 if all(self.task_network.nodes[pred]['completed'] for pred in self.task_network.predecessors(suc_task)):
                     self.tasks_ready.add(suc_task)
-                    
-                    # rework information has to be received
-                    if task_info.get('rework_info', False):
-                        self.assign_task(self.activity_network.nodes[activity]['assigned_to'], 
-                                         task_type='Receive_Information', 
-                                         info={'task': suc_task, 'info_amount': info_amount / n_tasks, 'rework_info': True})
                         
             elif self.task_network.nodes[suc_task]['task_status'] in {'Completed', 'Assigned'}:
                 if all(self.task_network.nodes[pred]['completed'] for pred in self.task_network.predecessors(suc_task)):
                     ## some bug where this is triggered exist (not sure why --> possibly problems with resetting task, not checking status correctly, starting too early, assignment of successor tasks when predecessors where paused)
-                    print(f'    Warning: Second order rework has to be checked for {suc_task} (start condition from info shareing from {task_info['task']})')
-                    pass ########### second order rework for special cases where not all downstream tasks were reset (feasibility)
+                    warnings.warn(f'Second order rework has to be checked for {suc_task} (start condition from info shareing from {task_info['task']})')
+                    
+                    ########### second order rework for special cases where not all downstream tasks were reset (feasibility --> feasibility rework was not implemented)
             
             
     def complete_receive_information(self, agent, task_data, originating_task):
@@ -1998,6 +2111,46 @@ class PDsim:
             # event log
             if self.log_events:
                 self.event_logger(f'{task} can be continued by {agent} because all requested information has been received.')
+        
+        
+        # check if collaboration for interface or feasbility is necessary
+        if task_info.get('rework_info', False):
+            rework_element = self.task_network.nodes[task]['architecture_element']
+            activity_name = self.task_network.nodes[task]['activity_name']
+            
+            # feasibility
+            perceived_definition_quality = self.architecture.nodes[rework_element]['perceived_definition_quality']
+            self.architecture.nodes[rework_element]['perceived_definition_quality'] = None # set to none because it will not be needed anymore until it is recalculated
+            if random.random() > perceived_definition_quality:
+                parent_element_agent = self.architecture.nodes[self.architecture_class.get_parent(rework_element)]['responsible_designer']
+                
+                ###### technically would have to add some rework to the system design activity
+                
+                # pause activity
+                self.activity_network.nodes[activity_name]['activity_status'] = 'Interface or Feasibility Problem'
+                
+                if self.check_if_idle(agent) and self.check_if_idle(parent_element_agent):
+                    self.start_collaboration(task, parent_element_agent, agent, rework_element, 1, 'Feasibility')
+                else:
+                    self.add_request(agent, parent_element_agent, type='Collaboration', info={'task': task, 'element': rework_element, 'sub_type': 'Feasibility', 'perceived_feasibility': 1})
+            
+            # interfaces
+            if not self.architecture_class.get_hierarchical_children(rework_element):
+                for dep_element, edge in self.architecture.nodes[rework_element]['interfaces'].items():
+                    edge = edge[0]
+                    perceived_interface_quality = self.architecture.edges[edge]['perceived_interface_quality']
+                    self.architecture.edges[edge]['perceived_interface_quality'] = None # set to none because it will not be needed anymore until it is recalculated
+                    
+                    if perceived_interface_quality and random.random() > perceived_interface_quality:
+                        # pause activity
+                        self.activity_network.nodes[activity_name]['activity_status'] = 'Interface or Feasibility Problem'
+                        
+                        dep_element_agent = self.architecture.nodes[dep_element]['responsible_designer']
+                        
+                        if self.check_if_idle(agent) and self.check_if_idle(dep_element_agent):
+                            self.start_collaboration(task, agent, dep_element_agent, dep_element, 1, 'Interface') 
+                        else:
+                            self.add_request(dep_element_agent, agent, type='Collaboration', info={'task': task, 'element': dep_element, 'sub_type': 'Interface', 'rework_percent': 1})
             
         
         # check if design is compatible with received information
@@ -2017,7 +2170,7 @@ class PDsim:
                 interfaces = sorted(list(self.architecture.nodes[element]['interfaces'].items()))
                 random.shuffle(interfaces)
                 for dep_element, _ in interfaces:
-                    quality = self.architecture.edges[element, dep_element]['design_quality']
+                    quality = self.architecture_class.calc_interface_quality((element, dep_element))
                     feasibility = self.architecture.edges[element, dep_element]['definition_quality']
                     
                     # quality of available information checked against feasibility
@@ -2047,7 +2200,7 @@ class PDsim:
                                     rework_percentage.append(rework_percent)
                                     causing_dep_elements.append(dep_element)
                                 
-                            dep_quality = self.architecture.edges[dep_element, element]['design_quality']
+                            dep_quality = self.architecture_class.calc_interface_quality((dep_element, element))
                             if random.random() > dep_quality:
                                 rework_percent = self.calculate_rework_percent(agent, dep_element, element, relevant_new_info, dep_quality, 'System_Design') * (1 - feasibility)
 
@@ -2062,7 +2215,7 @@ class PDsim:
                 element_info_to_check = sorted(list(element_info_to_check.items()))
                 random.shuffle(element_info_to_check)
                 for element, new_info_amount in element_info_to_check:
-                    quality = self.architecture.edges[element, own_element]['design_quality']
+                    quality = self.architecture_class.calc_interface_quality((element, own_element))
                     # check quality by comparing the available information
                     if random.random() > quality:
                         own_info_completeness = self.org_network.get_agent(agent)['product_information_completeness'][own_element][activity_type]
@@ -2092,7 +2245,11 @@ class PDsim:
                     del interface_rework[element]
             
             # start rework and collaboration
-            self.interface_problem(interface_rework, originating_task)
+            if task_info.get('Compatibility_Check', False):
+                consitency = self.org_network.get_agent(agent)['product_information_consitency'][element]['System_Design']
+            else:
+                consitency = self.org_network.get_agent(agent)['product_information_consitency'][element][activity_type]
+            self.interface_problem(interface_rework, originating_task, consitency)
     
     
     def calculate_rework_percent(self, agent, element, dependent_element, relvant_info, quality, activity_type):
@@ -2104,7 +2261,7 @@ class PDsim:
         return relvant_info * (1 - quality) * info_percentage * consitency
 
                         
-    def interface_problem(self, interface_rework, originating_task):          
+    def interface_problem(self, interface_rework, originating_task, consitency):          
             # start or request consultation and reset activities    
             for element, (rework_percentages, dep_elements) in interface_rework.items():                
                 
@@ -2135,25 +2292,29 @@ class PDsim:
                 # log event
                 if self.log_events:
                     self.event_logger(f'{element} has to be reworked due to interface problem with {", ".join([f'"{dep}"' for dep in dep_elements])}. {activity} has been paused.')
-
-                # reset activity and information
-                rework = 1
-                reduced_info = 1
-                for percent in rework_percentages:
-                    rework *= percent
-                    reduced_info *= (1 - percent)
-                rework_task = self.activity_rework(activity, rework)
-                rework_task = rework_task[0] if rework_task else []
-                if self.activity_network.nodes[activity]['activity_status'] == 'Completed': # only reset knowledge if activity was already completed
+                
+                
+                # only reset knowledge if activity was already completed
+                if self.activity_network.nodes[activity]['activity_status'] == 'Completed': 
                     knowledge_reset = True
-                    for succ in self.activity_network.successors(activity):
-                        if self.activity_network.nodes[succ]['activity_status'] == 'Assigned':
-                            self.reset_activities(succ, reset_reason='Rework Required')
-                        elif self.activity_network.nodes[succ]['activity_status'] == 'Completed':
-                            self.check_successor_rework([activity])
                 else:
                     knowledge_reset = False
-                self.update_knowledge_quality(element, reduced_info, second_order_rework=True, start_with_first_order=False, reset_knowledge=knowledge_reset)
+                
+                # reset activity and information
+                rework = 1
+                for percent in rework_percentages:
+                    rework *= percent
+                rework_task = self.activity_rework(activity, rework)
+                self.reset_interface_information(element, rework)
+                rework_task = rework_task[0] if rework_task else []
+                
+                if knowledge_reset:
+                    if any([self.activity_network.nodes[succ]['activity_status'] == 'Completed' for succ in self.activity_network.successors(activity)]):
+                        self.check_successor_rework([activity])
+                    else:
+                        self.reset_activities(self.activity_network.successors(activity), reset_reason='Rework Required')
+                
+                self.update_knowledge_quality(element, 1-rework, second_order_rework=True, start_with_first_order=False, reset_knowledge=knowledge_reset)
                 
                 # reset all tasks in activity to be reworked
                 self.reset_information_tasks(activity, rework_task, originating_task, element)
@@ -2168,15 +2329,13 @@ class PDsim:
                 self.activity_network.nodes[activity]['activity_status'] = 'Interface or Feasibility Problem'
 
                 # create collaboration tasks or requests
-                for dep_element, rework_percent in zip(dep_elements, rework_percentages):
+                for dep_element in dep_elements:
                     dep_element_agent = self.architecture.nodes[dep_element]['responsible_designer']
                     
-                    ####### Problem: currently small rework percentage is better because the knowledge gain is same --> thus low consitency is good (not good)
-                    
                     if self.check_if_idle(rework_element_agent) and self.check_if_idle(dep_element_agent):
-                        self.start_collaboration(rework_task, rework_element_agent, dep_element_agent, dep_element, rework_percent, 'Interface')
+                        self.start_collaboration(rework_task, rework_element_agent, dep_element_agent, dep_element, consitency, 'Interface')
                     else:
-                        self.add_request(dep_element_agent, rework_element_agent, type='Collaboration', info={'task': rework_task, 'element': dep_element, 'sub_type': 'Interface', 'rework_percent': rework_percent})
+                        self.add_request(dep_element_agent, rework_element_agent, type='Collaboration', info={'task': rework_task, 'element': dep_element, 'sub_type': 'Interface', 'rework_percent': consitency})
 
     
     def reset_information_tasks(self, activity, rework_task, originating_task, element):
@@ -2228,7 +2387,7 @@ class PDsim:
         # increase product knowledge
         element_for_knowledge_gain = task_info['element']
         inital_knowledge = self.org_network.get_agent(agent)['product_knowledge'][element_for_knowledge_gain]
-        knowledge_gain = help_fnc.calc_knowledge_gain(inital_knowledge, complexity)#, additional_factor=task_info['rework_percent']) #### currently not influenced by perceived feasibility and rework percent
+        knowledge_gain = help_fnc.calc_knowledge_gain(inital_knowledge, complexity, additional_factor=task_info['rework_percent'])
         self.org_network.get_agent(agent)['product_knowledge'][element_for_knowledge_gain] = inital_knowledge + knowledge_gain
         
         
@@ -2251,19 +2410,20 @@ class PDsim:
             else:
                 activity_type = 'Design'
             
-            # new information
+
             agent_info_completeness = self.org_network.get_agent(agent)['product_information_completeness'][element_for_knowledge_gain][activity_type]
             agent_info_consitency = self.org_network.get_agent(agent)['product_information_consitency'][element_for_knowledge_gain][activity_type]
+            
+            # sets all info used for interface to the current info being used
+            for i in range(len(self.architecture.edges[element, element_for_knowledge_gain]['info_used'])):
+                self.architecture.edges[element, element_for_knowledge_gain]['info_used'][i] = (agent_info_completeness, agent_info_consitency)
+            
+            # new information
             knowledge_base_completeness = self.knowledge_base['product_information_completeness'][element_for_knowledge_gain]
             knowledge_base_info_consitency = self.knowledge_base['product_information_consitency'][element_for_knowledge_gain]
             new_info = self.calculate_new_information(element_for_knowledge_gain, agent, agent_info_completeness, agent_info_consitency, knowledge_base_completeness, knowledge_base_info_consitency)
             
-            if new_info < 0:
-                if round(new_info, 6) == 0:
-                    warnings.warn(f'New info was a small negativ number ({new_info}). It was set to zero.')
-                else:
-                    raise ValueError(f'New information on {element_for_knowledge_gain} for {agent} is negative ({new_info}).')
-            elif new_info > 0:
+            if new_info > 0:
                 technical_complexity_dep = self.architecture.nodes[element_for_knowledge_gain]['technical_complexity']
                 interface_complexity = self.architecture.edges[element, element_for_knowledge_gain]['complexity']
                 info_percentage = interface_complexity / (technical_complexity_dep + interface_complexity)
@@ -2565,7 +2725,7 @@ class PDsim:
                 technical_task = info['task']
                 importance = self.task_network.nodes[technical_task]['importance']
                 activity_node = self.activity_network.nodes[self.task_network.nodes[technical_task]['activity_name']]
-
+            
             # once an activity linked to a technical task is assigned that activity is considered in progress
             if (not (task_type == 'Share_Information' and 
                     activity_node['activity_status'] == 'Interrupted' and 
@@ -2622,6 +2782,13 @@ class PDsim:
                     
             case 'Receive_Information' | 'Share_Information':
                 task_id = f'{task_type}_{info['task']}'
+                
+                if info.get('rework_info', False): # rework info gets increased importance
+                    if task_type == 'Share_Information':
+                        importance = self.task_network.nodes[info['start_condition_for'][0]]['importance']
+                    else:
+                        importance = self.task_network.nodes[activity_node['tasks'][0]]['importance']
+                
                 
                 if info.get('Compatibility_Check', False):
                     parent_element = self.org_network.get_agent(agent)['responsible_element']
@@ -3089,9 +3256,10 @@ class PDsim:
         active_technical_tasks = set()
         active_activities = set()
         for team in self.org_network.all_teams:
-            team_effort_backlog = 0
             for agent in self.org_network.get_members(team):
                 data = self.org_network.get_agent(agent)
+                
+                self.active_agents[agent].append(0.0)
                 
                 # effort and cost tracker
                 self.personnel_tracker[agent].append(data['state'])
@@ -3101,13 +3269,16 @@ class PDsim:
                     
                     if data['state'] != 'Idle':
                         self.total_work += step_size
+                        
+                    if data['state'] == 'Waiting':
+                        self.total_work_development_work += step_size
                     
                     if data['state'] not in {'Idle', 'Waiting'}:
                         total_effort += step_size
                         
                         # get tool cost
                         tool = data['tool_in_use']
-                        if tool:
+                        if tool and data['state'] not in {'Receive_Information', 'Share_Information', 'Search_Knowledge_Base'}:
                             if 'cost_per_hour' in self.tools[tool]:  # testing and prototyping have constant tool cost for single task
                                 tool_cost = self.tools[tool]['cost_per_hour'] * step_size
                             elif 'cost_per_month' in self.tools[tool]:
@@ -3149,6 +3320,7 @@ class PDsim:
                             else:
                                 self.total_technical_work_effort += step_size
 
+                        self.active_agents[agent][-1] = 1.0
                         
                         # cost breakdown
                         self.activity_network.nodes[active_activity]['cost'] += cost
@@ -3180,13 +3352,12 @@ class PDsim:
                     self.effort_breakdown[agent][label] += step_size
                         
                 # effort backlog
-                effort_backlog = 0
-                for task_info in data['task_queue'].values():
-                    if task_info['task_type'] != 'Noise':
-                        effort_backlog += task_info['remaining_effort']
-                self.effort_backlog_agents[agent].append(effort_backlog)
-                team_effort_backlog += effort_backlog
-            self.effort_backlog_teams[team].append(team_effort_backlog)
+                if not self.montecarlo:
+                    effort_backlog = 0
+                    for task_info in data['task_queue'].values():
+                        if task_info['task_type'] != 'Noise':
+                            effort_backlog += task_info['remaining_effort']
+                    self.effort_backlog_agents[agent].append(effort_backlog)
             
                 
         self.effort_tracker.append(total_effort)
@@ -3231,6 +3402,7 @@ class PDsim:
 
         total_cost = self.cost_tracker[-1]
         lead_time = self.global_clock
+        final_quality = self.architecture.nodes[self.overall_product_node]['overall_quality']
         
         effectivness = self.total_technical_work_effort / (self.total_technical_work_effort + self.total_technical_rework_effort)
         work_efficiency = self.total_development_work_effort / self.total_work_development_work
@@ -3259,11 +3431,13 @@ class PDsim:
         fp_yield = n_first_pass / n_total_testing
         rel_cost_physical = cost_from_physical / total_cost
         
+        
+        
         sum_agent_consitencies = 0
         relevant_agents = 0
         for agent in self.org_network.all_agents:
             if self.org_network.get_agent(agent).get('responsible_element', False):
-                if not self.architecture_class.get_hierarchical_children(self.org_network.get_agent(agent)['responsible_element']):
+                if not self.architecture_class.get_hierarchical_children(self.org_network.get_agent(agent)['responsible_element']): # only design relevant right now
                     sum_agent_consitencies += np.mean(self.org_network.get_agent(agent)['synchronization'])
                     relevant_agents += 1
             
@@ -3271,11 +3445,12 @@ class PDsim:
         
         # skip print statements and plots in case of a monte carlo
         if self.montecarlo:
-            return total_cost, lead_time, effectivness, average_iterations, fp_yield, rel_cost_physical, work_efficiency, average_consitency
+            return total_cost, lead_time, final_quality, effectivness, average_iterations, fp_yield, rel_cost_physical, work_efficiency, average_consitency
         
         
         util_over_time, average_util, overall_average_utilization = self.calculate_utilization_over_time()
         effort_backlog = self.sort_effort_backlog()
+        applied_effort = self.sort_applied_effort()
         effort_breakdown, total_effort = self.sort_effort_breakdown()
         dev_cost_breakdown = self.calc_cost_breakdown()
         
@@ -3288,6 +3463,7 @@ class PDsim:
             print('\nResults:\n')
             self.print_result(f'    Lead Time: {lead_time[0]} year(s), {lead_time[1]} month(s), {lead_time[2]} day(s)')
             self.print_result(f'    Total Cost: ${round(self.cost_tracker[-1] / 1000, 1)}k (including idle: ${round(self.cost_tracker_with_idle[-1] / 1000, 1)}k)')
+            self.print_result(f'    Final Quality: {(final_quality * 100):.1f} %')
             self.print_result(f'    Total Effort: {round(self.effort_tracker[-1] / work_hours_per_day, 1)} person-days')
             self.print_result(f'    Effectiveness: {(effectivness * 100):.1f} %')
             self.print_result(f'    Average Number of Iterations per Element: {average_iterations:.1f}') 
@@ -3295,6 +3471,7 @@ class PDsim:
             self.print_result(f'    Relative Cost of Physical Testing: {(rel_cost_physical * 100):.1f} %')
             self.print_result(f'    Work Efficency: {(work_efficiency * 100):.1f} %')
             self.print_result(f'    Average Consitency: {(average_consitency * 100):.1f} %')
+            
             
             # Resource Utilization
             if output_utils:
@@ -3322,7 +3499,7 @@ class PDsim:
                         print(f'                   To {interface}:')
                         for edge in edges:
                             print(f'                            Definition Quality{f' ({edge[0]} to {edge[1]})' if edge[1]!=interface else ''}: {self.architecture.edges[edge]['definition_quality']:.3f}') 
-                            print(f'                            Design Quality{f' ({edge[0]} to {edge[1]})' if edge[1]!=interface else ''}: {self.architecture.edges[edge]['design_quality']:.3f}') 
+                            print(f'                            Design Quality{f' ({edge[0]} to {edge[1]})' if edge[1]!=interface else ''}: {self.architecture_class.calc_interface_quality(edge):.3f}') 
                             
                         
             # Learning
@@ -3458,7 +3635,7 @@ class PDsim:
         in_progress_patch = mpatches.Patch(color='blue', label='Work')
         reworking_patch = mpatches.Patch(color='red', label='Rework')
         paused_patch = mpatches.Patch(color='lightgrey', label='Paused')
-        ax.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right', fontsize=10)
+        ax.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right', fontsize=10, frameon=False)
         
         fig.tight_layout(pad=0)
         
@@ -3582,33 +3759,65 @@ class PDsim:
         in_progress_patch = mpatches.Patch(color='blue', label='Work')
         reworking_patch = mpatches.Patch(color='red', label='Rework')
         paused_patch = mpatches.Patch(color='lightgrey', label='Paused')
-        ax1.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right')
+        ax1.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right', frameon=False)
 
 
 
         
         # Effort Backlog
-        ax2 = fig.add_subplot(gs[1, 0])
-        for entry, effort_data in effort_backlog.items():
-            if split_plots == 'profession':
-                label = f'{entry}s'
-            else:
-                label = f'{entry}'
-            if label in {'Suppliers', 'Supplier'}:
-                continue
+        if plot_applied_effort:
+            ax2 = fig.add_subplot(gs[1, 0])
+            for entry, effort_data in applied_effort.items():
+                if split_plots == 'profession':
+                    label = f'{entry}s'
+                else:
+                    label = f'{entry}'
+                if label in {'Suppliers', 'Supplier'}:
+                    continue
+                    
+                if entry == 'Overall':
+                    ax2.plot(time_in_weeks, moving_average(effort_data), linestyle='--', color='dimgray', label=label)
+                else:
+                    ax2.plot(time_in_weeks, moving_average(effort_data), label=label)
+                    
+            ax2.set_ylabel('Applied Effort (person-weeks)')
+            ax2.set_xlabel('Time (weeks)', labelpad=0)
+            ax2.grid(True)
+            ax2.set_xlim(left=0)
+            ax2.set_ylim(bottom=0)
+            moving_avrg_string = f'moving average: {round(moving_average_plots / 24, 1)} days'
+            ax2.set_title(f'Effort Applied over Time ({moving_avrg_string})')
+            
+        else:
+            ax2 = fig.add_subplot(gs[1, 0])
+            for entry, effort_data in effort_backlog.items():
+                if split_plots == 'profession':
+                    label = f'{entry}s'
+                else:
+                    label = f'{entry}'
+                if label in {'Suppliers', 'Supplier'}:
+                    continue
                 
-            if entry == 'Overall':
-                ax2.plot(time_in_weeks, moving_average(effort_data), linestyle='--', color='dimgray', label=label)
-            else:
-                ax2.plot(time_in_weeks, moving_average(effort_data), label=label)
+                if False:
+                    for i, value in enumerate(effort_data):
+                        active_agents = applied_effort[entry][i]
+                        if active_agents == 0:
+                            active_agents = 1
+                        
+                        effort_data[i] = value / active_agents
                 
-        ax2.set_ylabel('Effort Backlog (h)')
-        ax2.set_xlabel('Time (weeks)', labelpad=0)
-        ax2.grid(True)
-        ax2.set_xlim(left=0)
-        ax2.set_ylim(bottom=0)
-        moving_avrg_string = f'moving average: {round(moving_average_plots / 24, 1)} days'
-        ax2.set_title(f'Effort Backlog over Time ({moving_avrg_string})')
+                if entry == 'Overall':
+                    ax2.plot(time_in_weeks, moving_average(effort_data), linestyle='--', color='dimgray', label=label)
+                else:
+                    ax2.plot(time_in_weeks, moving_average(effort_data), label=label)
+                    
+            ax2.set_ylabel('Effort Backlog (h)')
+            ax2.set_xlabel('Time (weeks)', labelpad=0)
+            ax2.grid(True)
+            ax2.set_xlim(left=0)
+            ax2.set_ylim(bottom=0)
+            moving_avrg_string = f'moving average: {round(moving_average_plots / 24, 1)} days'
+            ax2.set_title(f'Effort Backlog over Time ({moving_avrg_string})')
 
 
 
@@ -3629,7 +3838,7 @@ class PDsim:
             
         ax3.set_ylabel('Resource Utilization (%)')
         ax3.set_xlabel('Time (weeks)', labelpad=0)
-        ax3.legend(loc='lower right', bbox_to_anchor=(-0.05, 1), fontsize=9)
+        ax3.legend(loc='lower right', bbox_to_anchor=(-0.05, 1), fontsize=9, frameon=False)
         ax3.grid(True)
         ax3.set_xlim(left=0)
         ax3.set_ylim(bottom=0)
@@ -3675,7 +3884,7 @@ class PDsim:
             labels = categories
         ax4.set_xticklabels(labels, rotation=10, ha='right')
         ax4.set_ylabel('Effort (person-days)')
-        ax4.legend(ncol=3, prop={'size': 8})
+        ax4.legend(prop={'size': 8}, frameon=False)
 
 
         # Component Cost Breakdown
@@ -3685,19 +3894,8 @@ class PDsim:
         component_cost_breakdown = {}
         for element, costs in dev_cost_breakdown.items():
             if not self.architecture_class.get_hierarchical_children(element):
-                del costs['System_Design']
-                del costs['Virtual_Integration']
-                del costs['LF_System_Simulation']
-                del costs['HF_System_Simulation']
                 
                 component_cost_breakdown[element] = costs
-                
-                # Add cost to parent element
-                parent_element = self.architecture_class.get_parent(element)
-                if 'Subsys./Comp. Dev.' not in dev_cost_breakdown[parent_element]:
-                    dev_cost_breakdown[parent_element]['Subsys./Comp. Dev.'] = 0
-                total_cost = sum(costs.values())
-                dev_cost_breakdown[parent_element]['Subsys./Comp. Dev.'] += total_cost
 
         elements = list(component_cost_breakdown.keys())
         activities = list(next(iter(component_cost_breakdown.values())).keys())
@@ -3723,11 +3921,24 @@ class PDsim:
                     )
             bottom += np.array(activity_costs)
 
+        ax5.axvline(
+            x=2.5, 
+            color='black', 
+            linestyle='--',
+            linewidth=1
+        )
+        ax5.axvline(
+            x=5.5, 
+            color='black', 
+            linestyle='--',
+            linewidth=1
+        )
+        
         ax5.set_title('Component Cost Breakdown')
         ax5.set_ylabel('Development Cost ($k)')
         ax5.set_xticks(x)
         ax5.set_xticklabels(elements, rotation=10, ha='right')
-        ax5.legend(prop={'size': 8})
+        ax5.legend(prop={'size': 8}, frameon=False)
 
         # System Cost Breakdown
         ax6 = fig.add_subplot(gs[2, 1])
@@ -3736,18 +3947,12 @@ class PDsim:
         system_cost_breakdown = {}
         for element, costs in dev_cost_breakdown.items():
             if self.architecture_class.get_hierarchical_children(element):
-                del costs['Component_Simulation']
-                del costs['Design']
-                
                 system_cost_breakdown[element] = costs
+                
+                for decendent in self.architecture_class._get_all_hierarchical_descendants(element):
+                    for cost_type, cost in dev_cost_breakdown[decendent].items():
+                        system_cost_breakdown[element][cost_type] += cost
 
-                # Add cost to parent element
-                parent_element = self.architecture_class.get_parent(element)
-                if parent_element:
-                    if 'Subsys./Comp. Dev.' not in dev_cost_breakdown[parent_element]:
-                        dev_cost_breakdown[parent_element]['Subsys./Comp. Dev.'] = 0
-                    total_cost = sum(costs.values())
-                    dev_cost_breakdown[parent_element]['Subsys./Comp. Dev.'] += total_cost
 
         elements = list(system_cost_breakdown.keys())
         activities = list(next(iter(system_cost_breakdown.values())).keys())
@@ -3772,11 +3977,18 @@ class PDsim:
                     )
             bottom += np.array(activity_costs)
 
+        ax6.axvline(
+            x=0.5, 
+            color='black', 
+            linestyle='--',
+            linewidth=1
+        )
+        
         ax6.set_title('System Cost Breakdown')
         ax6.set_ylabel('Development Cost ($k)')
         ax6.set_xticks(x)
         ax6.set_xticklabels(elements, rotation=45)
-        ax6.legend(ncol=2, prop={'size': 8})
+        ax6.legend(prop={'size': 8}, frameon=False)
         plt.tight_layout()
 
 
@@ -3801,41 +4013,7 @@ class PDsim:
             plt.savefig(self.save_folder +  '/single_run_results.png')
             plt.savefig(self.save_folder +  '/single_run_results.svg', format='svg')
             plt.show()
-
-    def plot_and_save_results(self,
-    gantt_tracker, effort_backlog, util_over_time, effort_breakdown, dev_cost_breakdown,
-    architecture_class
-    ):
-        
-        def moving_average(data):
-            if not use_moving_average:
-                return data
-            window_size = int(moving_average_plots / step_size)
-            smoothed_data = uniform_filter1d(data, size=window_size, mode='nearest')
-            return smoothed_data
-        
-        def save_individual_plot(fig, subplot_title, save_folder, file_name_extension=None, format='png'):
-            if file_name_extension:
-                file_name = f"{save_folder}/{subplot_title.replace(' ', '_')}_{file_name_extension}.{format}"
-            else:
-                file_name = f"{save_folder}/{subplot_title.replace(' ', '_')}.{format}"
-            fig.savefig(file_name, format=format)
-            plt.close(fig)
             
-        time_in_weeks = np.array(self.time_points) / (7 * 24)
-        
-        subplot_titles = [
-        "Gantt Chart of Activities", "Effort Backlog over Time", "Resource Utilization over Time",
-        "Effort Breakdown", "Component Cost Breakdown", "System Cost Breakdown"
-        ]
-        
-        for subplot_title in subplot_titles:
-            fig_subplot, ax_subplot = plt.subplots(figsize=(8, 6))
-
-            if subplot_title == "Gantt Chart of Activities":
-                pass
-        
-        
     
     def calc_cost_breakdown(self):
         system_dev_cost_breakdown = {}
@@ -3846,19 +4024,23 @@ class PDsim:
             architecture_element = activity_info['architecture_element']
             if architecture_element not in system_dev_cost_breakdown:
                 system_dev_cost_breakdown[architecture_element] = {
-                    'System_Design': 0,
-                    'LF_System_Simulation': 0,
-                    'Design': 0,
-                    'Component_Simulation': 0,
-                    'Virtual_Integration': 0,
-                    'HF_System_Simulation': 0,
-                    'Prototyping': 0,
-                    'Testing': 0,                 
+                    'Development': 0,
+                    'Virtual Validation': 0,
+                    'Physical Validation': 0
                 }
-            
+                
             # add activity
             activity_type =  activity_info['activity_type']
-            system_dev_cost_breakdown[architecture_element][activity_type] += cost
+            match activity_type:
+                case 'System_Design' | 'Design' | 'Virtual_Integration':
+                    cost_type = 'Development'
+                case 'LF_System_Simulation' | 'Component_Simulation' | 'HF_System_Simulation':
+                    cost_type = 'Virtual Validation'
+                case 'Prototyping' | 'Testing':
+                    cost_type = 'Physical Validation'
+                
+            
+            system_dev_cost_breakdown[architecture_element][cost_type] += cost
         return system_dev_cost_breakdown
     
     
@@ -3895,6 +4077,32 @@ class PDsim:
                 del total_effort[key]
         
         return effort_breakdown, total_effort
+        
+        
+    def sort_applied_effort(self):
+        applied_effort = {}
+
+        for agent, data in self.active_agents.items():
+            if split_plots == 'profession':
+                key = self.org_network.get_agent(agent)['profession']
+            elif split_plots == 'teams':
+                key = self.org_network.get_team(agent)
+            else:
+                key = None
+                
+            if 'Overall' not in applied_effort:
+                applied_effort['Overall'] = data
+            else:
+                applied_effort['Overall'] = np.add(applied_effort['Overall'], data)
+            
+            if key and key not in applied_effort:
+                applied_effort[key] = data
+            else:
+                if key:
+                    applied_effort[key] = np.add(applied_effort[key], data)
+
+        return applied_effort
+        
         
     def sort_effort_backlog(self):
         backlog = {}
@@ -3987,8 +4195,8 @@ if __name__ == "__main__":
         overall_quality_goal=0.90,
         
         # Input data location (None for test data)
-        folder='Architecture/Inputs/DOE3 - New Tool/DOE3-22',
-        #folder='Architecture/Inputs/Baseline'
+        #folder='Architecture/Inputs/DOE3 - New Tool/DOE3-22',
+        folder='Architecture/Inputs/Baseline',
         
         # debugging
         debug=False, 
@@ -3998,7 +4206,8 @@ if __name__ == "__main__":
         # logging
         enable_timeout=False,
         log_events=False,
-        slow_logs=False, 
+        slow_logs=False,
+        print_status=True,
         
         random_seed=None
     )

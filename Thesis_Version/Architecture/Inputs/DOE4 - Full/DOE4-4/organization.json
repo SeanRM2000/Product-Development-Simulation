@@ -23,7 +23,7 @@
             ],
             "digital_literacy": {
                 "EngineeringTools": 3,
-                "EngineeringSupportTools": 3
+                "EngineeringSupportTools": 1
             },
             "knowledge_base_familiarity": {
                 "General_KnowledgeBase": 0.5
@@ -56,7 +56,7 @@
                 "decision_making": [],
                 "digital_literacy": {
                     "EngineeringTools": 3,
-                    "EngineeringSupportTools": 3
+                    "EngineeringSupportTools": 1
                 },
                 "knowledge_base_familiarity": {
                     "General_KnowledgeBase": 0.5
@@ -88,7 +88,7 @@
                 "decision_making": [],
                 "digital_literacy": {
                     "EngineeringTools": 3,
-                    "EngineeringSupportTools": 3
+                    "EngineeringSupportTools": 1
                 },
                 "knowledge_base_familiarity": {
                     "General_KnowledgeBase": 0.5
@@ -120,7 +120,7 @@
                 "decision_making": [],
                 "digital_literacy": {
                     "EngineeringTools": 3,
-                    "EngineeringSupportTools": 3
+                    "EngineeringSupportTools": 1
                 },
                 "knowledge_base_familiarity": {
                     "General_KnowledgeBase": 0.5
@@ -164,7 +164,7 @@
                     ],
                     "digital_literacy": {
                         "EngineeringTools": 3,
-                        "EngineeringSupportTools": 3
+                        "EngineeringSupportTools": 1
                     },
                     "knowledge_base_familiarity": {
                         "General_KnowledgeBase": 0.5
@@ -200,7 +200,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -240,7 +240,7 @@
                         ],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -282,7 +282,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -316,7 +316,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -361,7 +361,7 @@
                     ],
                     "digital_literacy": {
                         "EngineeringTools": 3,
-                        "EngineeringSupportTools": 3
+                        "EngineeringSupportTools": 1
                     },
                     "knowledge_base_familiarity": {
                         "General_KnowledgeBase": 0.5
@@ -394,7 +394,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -426,7 +426,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -458,7 +458,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -490,7 +490,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -525,7 +525,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -559,7 +559,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -599,7 +599,7 @@
                     ],
                     "digital_literacy": {
                         "EngineeringTools": 3,
-                        "EngineeringSupportTools": 3
+                        "EngineeringSupportTools": 1
                     },
                     "knowledge_base_familiarity": {
                         "General_KnowledgeBase": 0.5
@@ -632,7 +632,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -664,7 +664,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -696,7 +696,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -731,7 +731,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -772,7 +772,7 @@
                     "decision_making": [],
                     "digital_literacy": {
                         "EngineeringTools": 3,
-                        "EngineeringSupportTools": 3
+                        "EngineeringSupportTools": 1
                     },
                     "knowledge_base_familiarity": {
                         "General_KnowledgeBase": 0.5
@@ -809,7 +809,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -841,7 +841,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -875,7 +875,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -909,7 +909,7 @@
                         "decision_making": [],
                         "digital_literacy": {
                             "EngineeringTools": 3,
-                            "EngineeringSupportTools": 3
+                            "EngineeringSupportTools": 1
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5

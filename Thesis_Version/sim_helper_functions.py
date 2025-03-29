@@ -117,6 +117,9 @@ def calc_efficiency_competency(knowledge_req, expertise, digital_literacy=None, 
         efficiency = sum((kr[i] + se * (ak[i] - kr[i]) if ak[i] > kr[i] else ak[i]) / kr[i] for i in k_rel) / len(k_rel)
         competency = sum(min(1, ak[i] / kr[i]) for i in k_rel) / len(k_rel)
     
+    if competency > 1:
+        raise ValueError("Competency is larger than 1")
+    
     # problem probability
     problem_rate = problem_rate_factor * sum([max(0, (1 - ak[i] / kr[i])) for i in k_rel]) / len(k_rel) # average missmatch
     if problem_rate > 0:
@@ -148,8 +151,12 @@ def calc_knowledge_gain(inital_level, complexity, expert_level=1, knowledge_base
         learning_efficiency = knowledge_base_effectivness * learning_efficiency_knowledge_base
         average_effort = knowledge_base_latency_average
     else:
-        learning_efficiency = learning_efficiency_expert_consultation
-        average_effort = consultation_effort_average
+        if expert_level == 1:
+            learning_efficiency = learning_efficiency_collaboration
+            average_effort = collaboration_effort_average
+        else:
+            learning_efficiency = learning_efficiency_consultation
+            average_effort = consultation_effort_average
     
     new_knowledge_level = expert_level / (1 + ( (expert_level / inital_level) - 1) * np.exp(-learning_efficiency * average_effort * additional_factor / complexity) )
     if new_knowledge_level < inital_level:
@@ -184,3 +191,13 @@ def clear_folder(folder_path):
                 print(f"Error deleting {file_path}: {e}")
     else:
         print(f"The folder {folder_path} does not exist.")
+
+
+
+def sort_key(item):
+    if isinstance(item, tuple):
+        # Already a tuple of strings, just return it
+        return item
+    else:
+        # Convert a single string to a 1-element tuple
+        return (item,)

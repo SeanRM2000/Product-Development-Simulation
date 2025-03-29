@@ -11,10 +11,10 @@
             "Air Frame"
         ],
         "parameters": {
-            "interoperability": 0.5,
+            "interoperability": 0.8,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.1,
+            "accuracy": 0.8,
             "cost_per_month": 10000
         }
     },
@@ -29,10 +29,10 @@
             "Flight Control System"
         ],
         "parameters": {
-            "interoperability": 0.5,
+            "interoperability": 0.8,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.4,
+            "accuracy": 0.2,
             "cost_per_month": 5000
         }
     },
@@ -50,10 +50,10 @@
             "Air Frame"
         ],
         "parameters": {
-            "interoperability": 0.5,
+            "interoperability": 0.2,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.1,
+            "accuracy": 0.2,
             "cost_per_month": 4000
         }
     },
@@ -69,10 +69,10 @@
             "Control Software"
         ],
         "parameters": {
-            "interoperability": 0.5,
+            "interoperability": 0.8,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.6,
+            "accuracy": 0.8,
             "cost_per_month": 2000
         }
     },
@@ -85,10 +85,10 @@
             "Controller"
         ],
         "parameters": {
-            "interoperability": 0.5,
+            "interoperability": 0.2,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.1,
+            "accuracy": 0.5,
             "cost_per_month": 4000
         }
     },
@@ -107,10 +107,10 @@
             "Air Frame"
         ],
         "parameters": {
-            "interoperability": 0.5,
+            "interoperability": 0.2,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.6,
+            "accuracy": 0.8,
             "cost_per_month": 12000
         }
     },
@@ -123,10 +123,10 @@
             "Controller"
         ],
         "parameters": {
-            "interoperability": 0.5,
+            "interoperability": 0.8,
             "productivity": 0.7,
             "use_complexity": 2.0,
-            "accuracy": 0.6,
+            "accuracy": 0.2,
             "cost_per_month": 4000
         }
     },

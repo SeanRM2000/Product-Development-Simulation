@@ -1,6 +1,13 @@
 # only use step sizes that hit every full hour (for handeling end of workday)
 step_size = 0.1 # h
 
+
+
+###### fast fine tuning
+effort_factor = 2
+physical_effort_factor = 0.7
+######
+
 # work days / hours
 work_days_per_week = 5
 work_hours_per_day = 8
@@ -23,19 +30,23 @@ penalty_for_outdated_info = 1
 scaling_factor_excess_knowledge = 0.2
 use_knowledge_weight = True
 
-feasibility_for_interface_quality_factor  = 0.8
-
 use_uncertainty_for_validation = False
 
 # Consultation on expertise
 problem_rate_factor = 1
-learning_efficiency_expert_consultation = 0.5 # complexity per hour
+
+learning_efficiency_collaboration = 1.2 # complexity per hour
+learning_efficiency_consultation = 0.5
 learning_efficiency_knowledge_base = 0.3 # complexity per hour
 familiarity_increase_rate = 0.01 # % of effort spent
 
 consultation_effort_min = 0.5 # h
 consultation_effort_max = 1 # h
 consultation_effort_average = (consultation_effort_min + consultation_effort_max) / 2
+
+collaboration_effort_min = 2 # h
+collaboration_effort_max = 3 # h
+collaboration_effort_average = (collaboration_effort_min + collaboration_effort_max) / 2
 
 importance_reduction_factor_for_external_expert = 0.2 # lowers importance for experts that are not in own team
 
@@ -57,6 +68,7 @@ verification_effort_factor = 1.5 # percent of effort that is added for verificat
 # information handling times (receiveing and sharing) --> Unit: h/h (effort for info handeling depends on how much info is received which depends on the amount of effort that was used to create it)
 info_handling_time_max = 0.3
 info_handling_time_min = 0.2
+
 info_need_rate_factor = 0.2
 base_info_exchange_propability = 0.1
 info_exchange_propability_factor = 0.5

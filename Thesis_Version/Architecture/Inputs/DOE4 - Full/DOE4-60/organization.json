@@ -22,8 +22,8 @@
                 "Drone"
             ],
             "digital_literacy": {
-                "EngineeringTools": 2,
-                "EngineeringSupportTools": 1
+                "EngineeringTools": 3,
+                "EngineeringSupportTools": 2
             },
             "knowledge_base_familiarity": {
                 "General_KnowledgeBase": 0.5
@@ -55,8 +55,8 @@
                 },
                 "decision_making": [],
                 "digital_literacy": {
-                    "EngineeringTools": 2,
-                    "EngineeringSupportTools": 1
+                    "EngineeringTools": 3,
+                    "EngineeringSupportTools": 2
                 },
                 "knowledge_base_familiarity": {
                     "General_KnowledgeBase": 0.5
@@ -87,8 +87,8 @@
                 },
                 "decision_making": [],
                 "digital_literacy": {
-                    "EngineeringTools": 2,
-                    "EngineeringSupportTools": 1
+                    "EngineeringTools": 3,
+                    "EngineeringSupportTools": 2
                 },
                 "knowledge_base_familiarity": {
                     "General_KnowledgeBase": 0.5
@@ -119,8 +119,8 @@
                 },
                 "decision_making": [],
                 "digital_literacy": {
-                    "EngineeringTools": 2,
-                    "EngineeringSupportTools": 1
+                    "EngineeringTools": 3,
+                    "EngineeringSupportTools": 2
                 },
                 "knowledge_base_familiarity": {
                     "General_KnowledgeBase": 0.5
@@ -163,8 +163,8 @@
                         "Motor"
                     ],
                     "digital_literacy": {
-                        "EngineeringTools": 2,
-                        "EngineeringSupportTools": 1
+                        "EngineeringTools": 3,
+                        "EngineeringSupportTools": 2
                     },
                     "knowledge_base_familiarity": {
                         "General_KnowledgeBase": 0.5
@@ -199,8 +199,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -239,8 +239,8 @@
                             "Motor"
                         ],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -281,8 +281,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -315,8 +315,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -360,8 +360,8 @@
                         "Propeller"
                     ],
                     "digital_literacy": {
-                        "EngineeringTools": 2,
-                        "EngineeringSupportTools": 1
+                        "EngineeringTools": 3,
+                        "EngineeringSupportTools": 2
                     },
                     "knowledge_base_familiarity": {
                         "General_KnowledgeBase": 0.5
@@ -393,8 +393,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -425,8 +425,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -457,8 +457,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -489,8 +489,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -524,8 +524,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -558,8 +558,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -598,8 +598,8 @@
                         "Controller"
                     ],
                     "digital_literacy": {
-                        "EngineeringTools": 2,
-                        "EngineeringSupportTools": 1
+                        "EngineeringTools": 3,
+                        "EngineeringSupportTools": 2
                     },
                     "knowledge_base_familiarity": {
                         "General_KnowledgeBase": 0.5
@@ -631,8 +631,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -663,8 +663,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -695,8 +695,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -730,8 +730,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -771,8 +771,8 @@
                     },
                     "decision_making": [],
                     "digital_literacy": {
-                        "EngineeringTools": 2,
-                        "EngineeringSupportTools": 1
+                        "EngineeringTools": 3,
+                        "EngineeringSupportTools": 2
                     },
                     "knowledge_base_familiarity": {
                         "General_KnowledgeBase": 0.5
@@ -808,8 +808,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -840,8 +840,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -874,8 +874,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
@@ -908,8 +908,8 @@
                         },
                         "decision_making": [],
                         "digital_literacy": {
-                            "EngineeringTools": 2,
-                            "EngineeringSupportTools": 1
+                            "EngineeringTools": 3,
+                            "EngineeringSupportTools": 2
                         },
                         "knowledge_base_familiarity": {
                             "General_KnowledgeBase": 0.5
