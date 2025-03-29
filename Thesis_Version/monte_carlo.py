@@ -27,7 +27,7 @@ from Inputs.tuning_params import *
     
 class MonteCarlo():
     def __init__(self, max_sim_runs, 
-                 check_stability=False, stability_criteria=0.01, stability_interval=100, # stability
+                 check_stability=False, stability_criteria=0.05, stability_interval=100, # stability
                  inital_seed=None, use_seeds=False, # monte carlo repeatability and trackability
                  architecture_config_name=None, # provid if simulation is run based on architecture model inputs
                  skip_errors=False,
