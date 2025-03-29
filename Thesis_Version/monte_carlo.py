@@ -192,7 +192,8 @@ class MonteCarlo():
                     print('No runs added.')
         
         # Sim results 
-        print(f'\n\nMonte Carlo Simulation completed {'(' + self.architecture_config_name + ')' if self.architecture_config_name else ''}.\n')
+        end_time = time.time() - start_time
+        print(f'\n\nMonte Carlo Simulation completed {'(' + self.architecture_config_name + ')' if self.architecture_config_name else ''} ({(end_time / 60):.1f} min).\n')
         
         if self.skip_errors and skipped_runs > 0:
             print(f'------->Warning: {skipped_runs} runs skipped due to errors\n')
