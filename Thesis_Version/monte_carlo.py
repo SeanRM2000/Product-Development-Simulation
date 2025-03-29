@@ -876,7 +876,7 @@ def run_all_architecture_configurations(n_runs, move_folders=False, use_seeds=Tr
     configs_skipped = []
     
     for config in list(configurations):
-        if config in {'Product', 'completed'}:
+        if config in {'Product', 'completed', 'skip'}:
             configurations.remove(config)
     
     if not configurations:
@@ -955,12 +955,12 @@ if __name__ == "__main__":
         if True:
             run_all_architecture_configurations(
                 
-                n_runs=4, # 400
+                n_runs=400, # 400
                                                 
                 move_folders=True, 
                 skip_errors=True, 
                 create_samples=False, 
-                folder_extention='DOE1 - Accuracy' #'DOE4 - Full'
+                folder_extention='DOE4 - Full'
             ) 
             
         else:
