@@ -1335,7 +1335,7 @@ class PDsim:
                                     break # no need to further check this cause
 
                     # get impacted activities
-                    for cause, causing_element, perceived_quality, type in rework_causes:
+                    for cause, causing_element, _, type in rework_causes:
                         
                         if self.architecture_class.get_hierarchical_children(causing_element):
                             impacted_activity_type = 'System_Design'
@@ -1548,6 +1548,8 @@ class PDsim:
     
     
     def check_successor_rework(self, activities):
+        
+        ## Known bug : if rework occurs right when information is being shared from a design/integration task then the information transfer is not stopped and the successor task will start after
         
         dependent_elements = {}
         for activity in activities:
@@ -2258,7 +2260,7 @@ class PDsim:
         info_percentage =  min(interface_complexity / technical_complexity, 1)
         consitency = self.org_network.get_agent(agent)['product_information_consitency'][element][activity_type]
         
-        return relvant_info * (1 - quality) * info_percentage * consitency
+        return relvant_info * (1 - quality) * info_percentage * consitency # consitency added to account for double rework being reduced
 
                         
     def interface_problem(self, interface_rework, originating_task, consitency):          
@@ -2785,7 +2787,10 @@ class PDsim:
                 
                 if info.get('rework_info', False): # rework info gets increased importance
                     if task_type == 'Share_Information':
-                        importance = self.task_network.nodes[info['start_condition_for'][0]]['importance']
+                        if info['start_condition_for']:
+                            importance = self.task_network.nodes[info['start_condition_for'][0]]['importance']
+                        else:
+                            importance = self.task_network.nodes[activity_node['tasks'][0]]['importance']
                     else:
                         importance = self.task_network.nodes[activity_node['tasks'][0]]['importance']
                 
@@ -4195,8 +4200,8 @@ if __name__ == "__main__":
         overall_quality_goal=0.90,
         
         # Input data location (None for test data)
-        #folder='Architecture/Inputs/DOE3 - New Tool/DOE3-22',
-        folder='Architecture/Inputs/Baseline',
+        folder='Architecture/Inputs/DOE3 - New Tool/DOE3-11',
+        #folder='Architecture/Inputs/Baseline',
         
         # debugging
         debug=False, 
@@ -4205,11 +4210,11 @@ if __name__ == "__main__":
         
         # logging
         enable_timeout=False,
-        log_events=False,
+        log_events=True,
         slow_logs=False,
         print_status=True,
         
-        random_seed=None
+        random_seed=2275587096
     )
     
     sim.sim_run()

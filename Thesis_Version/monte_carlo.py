@@ -918,7 +918,7 @@ def run_all_architecture_configurations(n_runs, move_folders=False, use_seeds=Tr
     print('All runs completed\n')
     print(f'Total time: {(total_time / 60):.1f} h')
     print(f'Average time per configuration: {(total_time / n_configs):.1f} min')
-    print(f'Number of single runs skipped due to errors: {n_total_errors} ({(100 * n_total_errors / (n_runs * (n_configs - len(configs_skipped)))):.3f} %)\n')
+    print(f'Number of single runs skipped due to errors: {n_total_errors} ({(100 * n_total_errors / (n_total_errors + n_runs * (n_configs - len(configs_skipped)))):.3f} %)\n')
     print(f'Completely skipped configs: {configs_skipped if configs_skipped else None}')
     
     #with open('Architecture/Inputs/goals.json', 'r') as file:
@@ -967,7 +967,7 @@ if __name__ == "__main__":
             warnings.filterwarnings("ignore")
             sim = MonteCarlo(
                 # Sim runs
-                max_sim_runs = 1500,
+                max_sim_runs = 400,
                 
                 # Stability
                 check_stability = False,

@@ -6,7 +6,7 @@ import math
 import pandas as pd
 
 
-doe = 'DOE2'
+doe = 'DOE3'
 use_value = None
 
 df = pd.read_excel('Architecture/DOE_Results.xlsx', sheet_name=doe)
@@ -20,7 +20,7 @@ plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams["mathtext.fontset"] = "stix"
 
 results = {
-    'Cost': 'Cost ($k)',
+    'Cost': 'Cost ($m)',
     'Lead Time': 'Lead Time (wks)',
     'Risk': 'Risk ($m)',
     'Quality': 'Quality',
@@ -60,7 +60,7 @@ match doe:
             input_2 = 'Interoperability'
             input_2_values = [0.2, 0.5, 0.8]
             additional_filter = 'Usability'
-            filter_value = 2
+            filter_value = 1
             label_addition = r'$T_I$'
 
 if additional_filter:
@@ -97,10 +97,15 @@ for i, (result_string, label) in enumerate(results.items()):
         x = filtered_df[x_axis]
         
         if result_string != 'Risk':
-
-            y = filtered_df[mean_col]
-            lower = filtered_df[lower_col]
-            upper = filtered_df[upper_col]
+            
+            if result_string == 'Cost':
+                y = np.array(filtered_df[mean_col]) / 1000
+                lower = np.array(filtered_df[lower_col]) / 1000
+                upper = np.array(filtered_df[upper_col]) / 1000
+            else:
+                y = filtered_df[mean_col]
+                lower = filtered_df[lower_col]
+                upper = filtered_df[upper_col]
             
             ax.plot(x, y, label=fr'{label_addition} = {level}', marker=markers[j], fillstyle='none', linestyle=linestyles[j], color='black')
             ax.fill_between(x, lower, upper, alpha=0.2, color='grey')

@@ -3,7 +3,7 @@ step_size = 0.1 # h
 
 
 
-###### fast fine tuning
+###### fast fine tuning of activity duration
 effort_factor = 2
 physical_effort_factor = 0.7
 ######
