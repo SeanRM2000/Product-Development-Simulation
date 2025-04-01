@@ -952,7 +952,7 @@ if __name__ == "__main__":
     mpl.rcParams['svg.fonttype'] = 'none'
     
     if True:
-        if True:
+        if False:
             run_all_architecture_configurations(
                 
                 n_runs=400, # 400
@@ -960,7 +960,7 @@ if __name__ == "__main__":
                 move_folders=True, 
                 skip_errors=True, 
                 create_samples=False, 
-                folder_extention='DOE4 - Full'
+                folder_extention='DOE1 - Accuracy'
             ) 
             
         else:
@@ -978,11 +978,12 @@ if __name__ == "__main__":
                 inital_seed=None,
                 use_seeds=True,
                 
-                architecture_config_name='Baseline',
+                architecture_config_name='DOE3-53', # Baseline
+                folder_extention='DOE3 - New Tool', # ''
                 
                 skip_errors=True
             )
-            sim.run_montecarlo(create_samples=True, show_plots=False)
+            sim.run_montecarlo(create_samples=False, show_plots=False)
             
     else:
         # plotting from csv

@@ -433,7 +433,7 @@ class ArchitectureGraph:
                     self._add_hierarchical_dependency(name, child_name)
 
         # Read data
-        if folder and 'Architecture/Inputs/' in folder: # use product folder if data is from architecture
+        if folder and ('Architecture/Inputs/' in folder or 'Hypercube' in folder): # use product folder if data is from architecture
             base_folder='Architecture/Inputs/Product'
 
         dsm_file_path = (base_folder + '/interface_dsm.csv') if folder else 'Inputs/test_data/test_dsm.csv'

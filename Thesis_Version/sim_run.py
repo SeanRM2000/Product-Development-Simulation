@@ -54,13 +54,17 @@ class PDsim:
             self.file_name_extention = file_name_extention
             if folder and 'Architecture/Inputs/' in folder:
                 self.save_folder = folder.replace('Inputs', 'Outputs')
+                os.makedirs(self.save_folder, exist_ok=True)
+            elif folder and 'Hypercube' in folder:
+                pass
             else:
                 # timestamp and folder for results and output files
                 timestamp = time.time()
                 dt_object = datetime.datetime.fromtimestamp(timestamp)
                 self.formatted_time = dt_object.strftime("%Y-%m-%d_%H-%M-%S")
                 self.save_folder = 'sim_runs/single_run_at_' + self.formatted_time
-            os.makedirs(self.save_folder, exist_ok=True)
+                os.makedirs(self.save_folder, exist_ok=True)
+                
             
             self.init_start_time = time.time()
             # debugging
@@ -1183,6 +1187,8 @@ class PDsim:
             dependent_tasks = sorted([task for task in self.task_network.successors(task) if self.task_network.nodes[task]['task_status'] not in {'Completed', 'Assigned'}])
 
             info_amount = self.activity_network.nodes[activity]['effort'] * new_info_percentage
+
+            self.task_network.nodes[task]['task_status'] = 'Sharing Information'
         
             
         elif activity_type in {'System_Design', 'Design'}:
@@ -1393,7 +1399,7 @@ class PDsim:
                 self.event_logger(f'"{task}" failed due to quality issues ({round(completion * 100)}% completion - overall quality: {round(perceived_quality, 3)}). {", ".join([f'"{activity}" ({quality})' for activity, quality in directly_impacted_activities.items()])} have to be reworked.')
             
             # trigger rework and reset testing activity
-            self.reset_activities([quant_activity], 'Interrupted')
+            self.reset_activities([quant_activity], 'Interrupted', quant_task=task)
             activities_to_reset = set()
             tasks_ready = []
             all_impacted_elements = set()
@@ -1549,8 +1555,6 @@ class PDsim:
     
     def check_successor_rework(self, activities):
         
-        ## Known bug : if rework occurs right when information is being shared from a design/integration task then the information transfer is not stopped and the successor task will start after
-        
         dependent_elements = {}
         for activity in activities:
             architecture_element = self.activity_network.nodes[activity]['architecture_element']
@@ -1589,7 +1593,7 @@ class PDsim:
             self.architecture.nodes[element]['previous_perceived_quality'][quality_to_update] = partially_reduced_quality
 
 
-    def reset_activities(self, activities, reset_reason:{'Interrupted', 'Rework Required'}):
+    def reset_activities(self, activities, reset_reason:{'Interrupted', 'Rework Required'}, quant_task=None):
 
         for activity in activities:
             # incomplete testing results are less effective 
@@ -1614,12 +1618,12 @@ class PDsim:
             self.activity_network.nodes[activity]['second_order_rework_reduction'] = 1
             
             for task in self.activity_network.nodes[activity]['tasks']: 
-                if reset_reason == 'Interrupted' and self.task_network.nodes[task]['final_task']:
-                    self.task_network.nodes[task]['task_status'] = 'Completed' # if final task starts rework it is never set to completed this is needed however to avoid double deletion
                 # delete tasks related to activity in agent queues
-                if self.task_network.nodes[task]['task_status'] not in {'Waiting', 'Completed', 'Rework Required'}:
+                if quant_task and task == quant_task:
+                    self.reset_task(task, True)
+                else:
                     self.reset_task(task)
-                
+                    
                 if reset_reason == 'Interrupted':
                     self.task_network.nodes[task]['task_status'] = 'Waiting'
                 elif reset_reason == 'Rework Required':
@@ -1628,47 +1632,55 @@ class PDsim:
                 self.task_network.nodes[task]['completed'] = False
    
     
-    def reset_task(self, task):
-        responsible_agent = self.task_network.nodes[task]['assigned_to'] 
-        # reset related info requests
-        for request in list(self.org_network.get_agent(responsible_agent)['pending_info_requests']): 
-            if request['task'] == task:
-                req_id = request['req_id']
-                requested_from = request['sent_to']
-                self.org_network.get_agent(responsible_agent)['pending_info_requests'].remove(request)
-                for reqs in list(self.org_network.get_agent(requested_from)['info_requests']):
-                    if reqs['req_id'] == req_id:
-                        self.org_network.get_agent(requested_from)['info_requests'].remove(reqs)
-                        break
-        
-        # reset related collaboration requests
-        for request in list(self.org_network.get_agent(responsible_agent)['pending_collab_requests']):
-            if request['task'] == task:
-                if request['request_type'] != 'Collaboration': # exclude collaboration to not be reset when additional collaboriation for this activity is started
+    def reset_task(self, task, quant_task=False):
+        if (self.task_network.nodes[task]['task_status'] not in {'Waiting', 'Completed', 'Rework Required'}
+            or 
+            (self.task_network.nodes[task]['task_status'] == 'Sharing Information' and 
+                self.task_network.nodes[task]['final_task'] and 
+                not self.task_network.nodes[task]['completed']) # special case if rework is started when final info sharing activity is active
+            ):
+
+            responsible_agent = self.task_network.nodes[task]['assigned_to'] 
+            # reset related info requests
+            for request in list(self.org_network.get_agent(responsible_agent)['pending_info_requests']): 
+                if request['task'] == task:
                     req_id = request['req_id']
                     requested_from = request['sent_to']
-                    self.org_network.get_agent(responsible_agent)['pending_collab_requests'].remove(request)
-                    for reqs in list(self.org_network.get_agent(requested_from)['collab_requests']):
+                    self.org_network.get_agent(responsible_agent)['pending_info_requests'].remove(request)
+                    for reqs in list(self.org_network.get_agent(requested_from)['info_requests']):
                         if reqs['req_id'] == req_id:
-                            self.org_network.get_agent(requested_from)['collab_requests'].remove(reqs)
+                            self.org_network.get_agent(requested_from)['info_requests'].remove(reqs)
                             break
-        
-        # delete all assigned related tasks
-        for task_in_q, task_info in list(self.org_network.get_agent(responsible_agent)['task_queue'].items()):
-            if task_info['task_type'] == 'Technical_Work':
-                if task_in_q == task:
-                    del self.org_network.get_agent(responsible_agent)['task_queue'][task_in_q]
-            elif task_info['task_type'] != 'Noise':
-                if task_info['task_type'] != 'Collaboration': # exclude collaboration to not be reset when additional collaboriation for this activity is started
-                    linked_technical_task = task_info['additional_info']['task']
-                    if linked_technical_task == task:
-                        if task_info['task_type'] == 'Consultation':
-                            expert = task_info['additional_info']['expert']
-                            for t, t_i in list(self.org_network.get_agent(expert)['task_queue'].items()):
-                                if t_i['task_type'] == 'Provide_Consultation':
-                                    del self.org_network.get_agent(expert)['task_queue'][t]
-                                    break
-                        del self.org_network.get_agent(responsible_agent)['task_queue'][task_in_q]
+            
+            # reset related collaboration requests
+            for request in list(self.org_network.get_agent(responsible_agent)['pending_collab_requests']):
+                if request['task'] == task:
+                    if request['request_type'] != 'Collaboration': # exclude collaboration to not be reset when additional collaboriation for this activity is started
+                        req_id = request['req_id']
+                        requested_from = request['sent_to']
+                        self.org_network.get_agent(responsible_agent)['pending_collab_requests'].remove(request)
+                        for reqs in list(self.org_network.get_agent(requested_from)['collab_requests']):
+                            if reqs['req_id'] == req_id:
+                                self.org_network.get_agent(requested_from)['collab_requests'].remove(reqs)
+                                break
+            
+            # delete all assigned related tasks
+            for task_in_q, task_info in list(self.org_network.get_agent(responsible_agent)['task_queue'].items()):
+                if task_info['task_type'] == 'Technical_Work':
+                    if not quant_task: # quant task is not deleted to avoid double deletion
+                        if task_in_q == task:
+                            del self.org_network.get_agent(responsible_agent)['task_queue'][task_in_q]
+                elif task_info['task_type'] != 'Noise':
+                    if task_info['task_type'] != 'Collaboration': # exclude collaboration to not be reset when additional collaboriation for this activity is started
+                        linked_technical_task = task_info['additional_info']['task']
+                        if linked_technical_task == task:
+                            if task_info['task_type'] == 'Consultation':
+                                expert = task_info['additional_info']['expert']
+                                for t, t_i in list(self.org_network.get_agent(expert)['task_queue'].items()):
+                                    if t_i['task_type'] == 'Provide_Consultation':
+                                        del self.org_network.get_agent(expert)['task_queue'][t]
+                                        break
+                            del self.org_network.get_agent(responsible_agent)['task_queue'][task_in_q]
 
 
 
@@ -1815,13 +1827,13 @@ class PDsim:
             # get completed tasks
             completed_tasks = []
             for task in activity_info['tasks']:
-                if self.task_network.nodes[task]['completed'] or self.task_network.nodes[task]['task_status'] == 'Completed':
+                if self.task_network.nodes[task]['completed'] or self.task_network.nodes[task]['task_status'] in {'Completed', 'Sharing Information'}:
                     completed_tasks.append(task)
                 
                 # reset task if it is active
                 if self.task_network.nodes[task]['task_status'] not in {'Waiting', 'Completed', 'Rework Required'}:
-                    self.task_network.nodes[task]['task_status'] = 'Rework Required'
                     self.reset_task(task)
+                    self.task_network.nodes[task]['task_status'] = 'Rework Required'
                     
             n_completed = len(completed_tasks)
             
@@ -1842,6 +1854,7 @@ class PDsim:
         # reset activity and tasks to be reworked
         self.activity_network.nodes[activity]['n_completed_tasks'] = n_completed - n_tasks_to_rework
         for task in tasks_to_be_reworked:
+            self.reset_task(task)
             self.task_network.nodes[task]['task_status'] = 'Rework Required'
             self.task_network.nodes[task]['completed'] = False
         
@@ -1871,6 +1884,7 @@ class PDsim:
         # complete final task
         if self.task_network.nodes[task]['final_task'] and not task_info.get('rework_info', False):
             self.task_network.nodes[task]['completed'] = True
+            self.task_network.nodes[task]['task_status'] = 'Completed'
         
         # update knowledge base
         if activity_type in {'System_Design', 'Design'}:
@@ -2031,10 +2045,9 @@ class PDsim:
                         
             elif self.task_network.nodes[suc_task]['task_status'] in {'Completed', 'Assigned'}:
                 if all(self.task_network.nodes[pred]['completed'] for pred in self.task_network.predecessors(suc_task)):
-                    ## some bug where this is triggered exist (not sure why --> possibly problems with resetting task, not checking status correctly, starting too early, assignment of successor tasks when predecessors where paused)
+                    ## some bug where this is triggered exist --> rework information passed back but interface problem occurs which is then started (probably)
                     warnings.warn(f'Second order rework has to be checked for {suc_task} (start condition from info shareing from {task_info['task']})')
-                    
-                    ########### second order rework for special cases where not all downstream tasks were reset (feasibility --> feasibility rework was not implemented)
+                    # second order rework for special cases where not all downstream tasks were reset (feasibility --> feasibility rework was not implemented)
             
             
     def complete_receive_information(self, agent, task_data, originating_task):
@@ -3301,10 +3314,10 @@ class PDsim:
                         if data['state'] not in {'Check_Interface_Compatibility'}:#, 'Collaboration'}:
                             active_technical_tasks.add(tech_task)
                             active_activities.add(active_activity)
-                                
+
                         # work/rework effort tracker
                         if self.task_network.nodes[tech_task]['repetitions'] >= 1 and not (self.task_network.nodes[tech_task]['repetitions'] == 1 
-                                                                                           and self.task_network.nodes[tech_task]['task_status'] == 'Completed'):
+                                                                                           and self.task_network.nodes[tech_task]['task_status'] in {'Completed', 'Sharing Information'}):
                             self.total_rework_effort += step_size
                             self.activity_network.nodes[active_activity]['total_rework_effort'] += step_size
                         else:
@@ -3320,7 +3333,7 @@ class PDsim:
                                 self.total_development_work_effort += step_size
                                 
                             if self.task_network.nodes[tech_task]['repetitions'] >= 1 and not (self.task_network.nodes[tech_task]['repetitions'] == 1 
-                                                                                           and self.task_network.nodes[tech_task]['task_status'] == 'Completed'):
+                                                                                           and self.task_network.nodes[tech_task]['task_status'] in {'Completed', 'Sharing Information'}):
                                 self.total_technical_rework_effort += step_size
                             else:
                                 self.total_technical_work_effort += step_size
@@ -3382,7 +3395,7 @@ class PDsim:
                     self.gantt_tracker[activity].append(('Paused', self.global_clock))
             # reworking       
             elif any([self.task_network.nodes[task]['repetitions'] >= 1 and not (self.task_network.nodes[tech_task]['repetitions'] == 1 
-                                                                                and self.task_network.nodes[tech_task]['task_status'] == 'Completed')
+                                                                                and self.task_network.nodes[tech_task]['task_status'] in {'Completed', 'Sharing Information'})
                       for task in list(active_technical_tasks) 
                       if self.task_network.nodes[task]['activity_name'] == activity and
                       last_state != 'In Progress']):
@@ -4186,12 +4199,12 @@ class PDsim:
 
 # Warning Handling for debugging
 def warning_handler(message, category, filename, lineno, file=None, line=None):
-    print(f"Warning captured:\nMessage: {message}\nCategory: {category}\nFile: {filename}\nLine: {lineno}")
-    pdb.set_trace()  # Pause execution and start the debugger
+    print(f"   Warning captured: {message} (Line: {lineno})")
+    #pdb.set_trace()  # Pause execution and start the debugger
 
 
 if __name__ == "__main__":
-    #warnings.showwarning = warning_handler
+    warnings.showwarning = warning_handler
     
     mpl.rcParams['svg.fonttype'] = 'none'
     plt.rcParams["font.family"] = "Times New Roman"
@@ -4210,11 +4223,11 @@ if __name__ == "__main__":
         
         # logging
         enable_timeout=False,
-        log_events=True,
+        log_events=False,
         slow_logs=False,
         print_status=True,
         
-        random_seed=2275587096
+        random_seed=4# 2275587096
     )
     
     sim.sim_run()

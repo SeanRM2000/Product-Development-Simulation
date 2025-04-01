@@ -18,6 +18,7 @@ from Inputs.tuning_params import *
 
 class TaskNetwork():
     def __init__(self, activity_network: ActivityNetwork, architecture_graph: ArchitectureGraph, randomize_structure=False, randomize_task_times=False, random_seed=None):
+        self.activity_class = activity_network
         self.activity_network = activity_network.activity_graph
         self.architecture_graph = architecture_graph.architecture
         self.final_activity = activity_network.final_activity
@@ -327,7 +328,7 @@ class TaskNetwork():
         task_times = {}
         for activity, activity_data in self.activity_network.nodes.items():
             total_effort = activity_data['effort']
-            if self.random_times:
+            if self.random_times:  ### not used 
                 task_times[activity] = []
                 remaining_effort = total_effort
                 while remaining_effort > min_task_effort:
@@ -339,7 +340,12 @@ class TaskNetwork():
                     task_times[activity].append(remaining_effort)
                     
             else:
-                n_tasks = int(total_effort / (nominal_task_effort * effort_factor))
+                if activity_data['activity_type'] in {'Component_Simulation', 'HF_System_Simulation'}:
+                    element = activity_data['architecture_element']
+                    testing_effort = self.activity_network.nodes[self.activity_class.generate_activity_name(element, 'Testing')]['effort']
+                    n_tasks = int(testing_effort / (nominal_task_effort * effort_factor))
+                else:
+                    n_tasks = int(total_effort / (nominal_task_effort * effort_factor))
                 task_effort = round(total_effort / n_tasks, 4)
                 task_times[activity] = [task_effort] * n_tasks
                 
@@ -422,4 +428,4 @@ if __name__ == "__main__":
     task_network.plot_task_graph()
     
     for node, data in activity_network.activity_graph.nodes(data=True):
-        print(f'{node}: {data['effort']}')
+        print(f'{node}: {len(data['tasks'])}')

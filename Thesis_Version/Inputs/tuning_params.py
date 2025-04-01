@@ -4,9 +4,10 @@ step_size = 0.1 # h
 
 
 ###### fast fine tuning of activity duration
-effort_factor = 2
-physical_effort_factor = 0.7
+effort_factor = 1
+physical_effort_factor = 1
 ######
+nominal_task_effort = 4 # h
 
 # work days / hours
 work_days_per_week = 5
@@ -98,7 +99,8 @@ fully_linear_tasks = True # if True ignores task_parallelization and sets everyt
 
 ### Task Time generation
 # Static Times:
-nominal_task_effort = 2 # h
+
+
 # Random Times:
 min_task_effort = 2 # h
 max_task_effort = 6 # h

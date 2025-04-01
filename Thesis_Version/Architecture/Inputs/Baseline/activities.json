@@ -1,6 +1,6 @@
 {
     "System_Design": {
-    "tri_distribution": [5, 10, 7],
+    "tri_distribution": [10, 20, 15],
     "learning_rate": 0.8,
     "activity_overlap": {
         "to": "creation",
@@ -8,12 +8,12 @@
     }
     },
     "LF_System_Simulation": {
-    "tri_distribution": [5, 7, 6],
+    "tri_distribution": [10, 14, 12],
     "learning_rate": 0.9,
     "activity_overlap": null
     },
     "Design": {
-    "tri_distribution": [10, 15, 13],
+    "tri_distribution": [20, 30, 25],
     "learning_rate": 0.8,
     "activity_overlap": {
         "to": "quantification",
@@ -21,7 +21,7 @@
     }
     },
     "Component_Simulation": {
-    "tri_distribution": [5, 10, 8],
+    "tri_distribution": [10, 18, 14],
     "learning_rate": 0.9,
     "activity_overlap": null
     },
@@ -34,12 +34,12 @@
     }
     },
     "HF_System_Simulation": {
-    "tri_distribution": [5, 8, 6],
+    "tri_distribution": [8, 12, 10],
     "learning_rate": 0.9,
     "activity_overlap": null
     },
     "Prototyping": {
-    "tri_distribution": [7, 10, 9],
+    "tri_distribution": [15, 20, 18],
     "learning_rate": 0.95,
     "activity_overlap": {
         "to": "quantification",
@@ -47,7 +47,7 @@
     }
     },
     "Testing": {
-    "tri_distribution": [6, 9, 8],
+    "tri_distribution": [12, 16, 14],
     "learning_rate": 0.9,
     "activity_overlap": null
     }
