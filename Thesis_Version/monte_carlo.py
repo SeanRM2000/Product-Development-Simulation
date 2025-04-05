@@ -961,7 +961,7 @@ if __name__ == "__main__":
     plt.rcParams["mathtext.fontset"] = "stix"
     
     if True:
-        if False:
+        if True:
             run_all_architecture_configurations(
                 
                 n_runs=400, # 400
