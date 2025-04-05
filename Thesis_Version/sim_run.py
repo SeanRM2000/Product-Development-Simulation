@@ -281,12 +281,14 @@ class PDsim:
                     if task_info['additional_info']['problem_probability'] > random.random():
                         self.technical_problem_with_general_knowledge(agent, agent_task)
                         continue # dont reduce effort for problem (causes problems with iteration)
-                
+                        
+                    ####### tool problems could also be added here
+ 
                     # check feasibility
-                    if self.check_feasibility_problem(agent, agent_task):
-                        continue
-                    
-                ####### tool problems could also be added here
+                    if task_info['remaining_effort'] - step_size <= 0:# only check at the end (kept it here as a work around to make this a quick fix)
+                        if self.check_feasibility_problem(agent, agent_task):
+                            continue
+
             
             # update remaining effort
             task_info['remaining_effort'] -= step_size
@@ -305,8 +307,6 @@ class PDsim:
         if architecture_element == self.overall_product_node:
             return
         
-        definition_quality = self.architecture.nodes[architecture_element]['definition_quality']
-        
         
         # calculate probability to detect problem
         tool = self.activity_network.nodes[activity]['tool']
@@ -316,17 +316,14 @@ class PDsim:
         
         accuracy = tool_acc * digital_literacy + competency
         
-        nominal_effort = self.org_network.get_agent(agent)['task_queue'][task]['nominal_effort']
-        real_effort = self.org_network.get_agent(agent)['task_queue'][task]['inital_effort']
-        
-        detection_rate = feasibility_detection_rate_factor * (1 - definition_quality) * accuracy
-        detection_probability = 1 - np.exp(-detection_rate * nominal_effort / real_effort * step_size)
-        
-        if detection_probability < random.random():
+        perceived_def_quality = self.calc_perceived_quality(architecture_element, 'definition_quality', None, accuracy, upper_limit_acc=2, set_values=False)
+
+        if perceived_def_quality > random.random():
             return False
         else:
             
             if self.log_events:
+                definition_quality = self.architecture.nodes[architecture_element]['definition_quality']
                 self.event_logger(f'{agent} encountered a Feasibility Problem (Feas: {definition_quality}) with {architecture_element}. {activity} has been paused.')
             
             parent_element = self.architecture_class.get_parent(architecture_element)
@@ -337,12 +334,12 @@ class PDsim:
             # pause activity
             self.activity_network.nodes[activity]['activity_status'] = 'Interface or Feasibility Problem'
             
-            perceived_feasibility = 1 # not used currently
+            effectivness = 1 # not used currently for feasibility
             
             if self.check_if_idle(agent) and self.check_if_idle(parent_element_agent):
-                self.start_collaboration(task, parent_element_agent, agent, architecture_element, perceived_feasibility, 'Feasibility')
+                self.start_collaboration(task, parent_element_agent, agent, architecture_element, effectivness, 'Feasibility')
             else:
-                self.add_request(agent, parent_element_agent, type='Collaboration', info={'task': task, 'element': architecture_element, 'sub_type': 'Feasibility', 'perceived_feasibility': perceived_feasibility})
+                self.add_request(agent, parent_element_agent, type='Collaboration', info={'task': task, 'element': architecture_element, 'sub_type': 'Feasibility', 'effectivness': effectivness})
             
             return True
         
@@ -424,10 +421,7 @@ class PDsim:
                             self.start_consultation(selected_request['task'], requestor, agent, selected_request['knowledge_item'], selected_request['knowledge_level'])
                   
                         case 'Collaboration':
-                            if selected_request['sub_type'] == 'Feasibility':
-                                self.start_collaboration(selected_request['task'], requestor, agent, selected_request['element'], selected_request['perceived_feasibility'], selected_request['sub_type'])
-                            else:
-                                self.start_collaboration(selected_request['task'], requestor, agent, selected_request['element'], selected_request['rework_percent'], selected_request['sub_type'])
+                            self.start_collaboration(selected_request['task'], requestor, agent, selected_request['element'], selected_request['effectivness'], selected_request['sub_type'])
                     
                     
                     agents_with_new_collab.extend([requestor, agent])
@@ -879,14 +873,14 @@ class PDsim:
             )
         
         
-    def start_collaboration(self, task, requesting_agent, responsible_agent, element, rework_percent, type):
+    def start_collaboration(self, task, requesting_agent, responsible_agent, element, effectivness, type):
     
         # Event log
         if self.log_events:
             self.event_logger(f'Collaboration because of {type} problem with {element} between {requesting_agent} and {responsible_agent} started.')
         
         # defined here to be equal for both
-        effort = random.triangular(collaboration_effort_min, collaboration_effort_max)
+        effort = random.triangular(collaboration_effort_min, collaboration_effort_max) * effectivness
         
         # create tasks
         self.assign_task(
@@ -898,7 +892,7 @@ class PDsim:
         self.assign_task(
             requesting_agent, 
             task_type='Collaboration', 
-            info={'task': task, 'resp_agent': responsible_agent, 'element': element, 'sub_type': type, 'rework_percent': rework_percent},
+            info={'task': task, 'resp_agent': responsible_agent, 'element': element, 'sub_type': type, 'effectivness': effectivness},
             effort=effort
         ) 
         
@@ -1024,9 +1018,10 @@ class PDsim:
                 for child in children:
                     # definition quality (feasibility) for children
                     knowledge_req_child = self.architecture.nodes[child]['knowledge_req']
-                    competency = help_fnc.calc_efficiency_competency(knowledge_req_child, expertise)[1]
+                    comp = help_fnc.calc_efficiency_competency(knowledge_req_child, expertise)[1]
                     product_knowledge = agent_data['product_knowledge'][child]
-                    self.architecture.nodes[child]['definition_quality'] = product_knowledge + (1 - product_knowledge) * competency
+                    # self.architecture.nodes[child]['definition_quality'] = product_knowledge + (1 - product_knowledge) * comp
+                    self.architecture.nodes[child]['definition_quality'] = product_knowledge
                     
                     # log event
                     if self.log_events:
@@ -1248,17 +1243,15 @@ class PDsim:
         quant_activity = self.task_network.nodes[task]['activity_name']
         activity_type = self.activity_network.nodes[quant_activity]['activity_type']
         architecture_element = self.activity_network.nodes[quant_activity]['architecture_element']
-        
-        # quality with some error
-        perceived_quality, uncertainty, accuracy = self.calc_quantification_result(task, agent)
 
-        if random.random() * self.overall_quality_goal < perceived_quality:
-            return True # quantification successfull
-        else:
-            completion = ( self.activity_network.nodes[quant_activity]['n_completed_tasks'] - 1 ) / self.activity_network.nodes[quant_activity]['num_tasks']
+        # quality with some error
+        perceived_quality = self.calc_quantification_result(task, architecture_element, agent)
+
+        rework_causes = []
+        directly_impacted_activities = {}
+        if random.random() * self.overall_quality_goal > perceived_quality:
             
             # get activity that is impacted
-            directly_impacted_activities = {}
             match activity_type:
                 case 'Component_Simulation' | 'LF_System_Simulation':  # always have only one predecessor (design or system design)
                     
@@ -1285,15 +1278,16 @@ class PDsim:
                 case 'HF_System_Simulation' | 'Testing':            
 
                     # get all possible descendents that could cause rework
-                    possible_rework_causes = set([architecture_element])
+                    possible_rework_causes = [architecture_element]
                     descendants = self.architecture_class.get_all_hierarchical_descendants(architecture_element)
                     for descendant in descendants:
-                        possible_rework_causes.add(descendant)
-                        possible_rework_causes.update([edge for interface, edges in self.architecture.nodes[descendant]['interfaces'].items()
-                                                       if interface in descendants for edge in edges])
+                        possible_rework_causes.append(descendant)
+                        if not self.architecture_class.get_hierarchical_children(descendant):
+                            for interface, edges in self.architecture.nodes[descendant]['interfaces'].items():
+                                if interface in descendants:
+                                    possible_rework_causes.append(edges[0]) 
                     
                     # get actual causes and weights (for selection)
-                    rework_causes = []
                     possible_causes = []
                     possible_rework_causes = sorted(list(possible_rework_causes), key=help_fnc.sort_key)
                     for cause in possible_rework_causes:
@@ -1327,140 +1321,178 @@ class PDsim:
                         selected_index = random.choices(range(len(possible_causes)), weights=normalized_weights, k=1)[0]
                         rework_causes.append(possible_causes[selected_index])
 
-                    # delete unnecessary causes 
-                    if len(rework_causes) > 1:
-                        all_causing_elements = set()
-                        for _, causing_element, _, _ in rework_causes:
-                            all_causing_elements.add(causing_element)
-                            
-                        for cause in list(rework_causes):
-                            for ancestor in self.architecture_class.get_all_ancestors(cause[1]):
-                                if ancestor in all_causing_elements:
-                                    index = rework_causes.index(cause)
-                                    rework_causes.pop(index)
-                                    break # no need to further check this cause
 
-                    # get impacted activities
-                    for cause, causing_element, _, type in rework_causes:
-                        
-                        if self.architecture_class.get_hierarchical_children(causing_element):
-                            impacted_activity_type = 'System_Design'
-                        else:
-                            impacted_activity_type = 'Design'
-                        
-                        impacted_activity = self.activity_network_class.generate_activity_name(causing_element, impacted_activity_type)
-                        
-                        # quality used to determine rework amount
-                        if type == 'interface':
-                            cause_quality = self.architecture_class.calc_interface_quality(cause)
-                        else:
-                            cause_quality = self.architecture.nodes[cause]['design_quality']
-                        
-                        if impacted_activity in directly_impacted_activities:
-                            directly_impacted_activities[impacted_activity] *= cause_quality  
-                        else:
-                            directly_impacted_activities[impacted_activity] = cause_quality
-                        
-                        # perceived quality of interface or feasibility is set to 0 if it was the cause --> starts collaboration otherwise there only is a chance to start collab
-                        if type == 'interface':
-                            if self.log_events:
-                                self.event_logger(f'Interface from {cause[0]} to {cause[1]} has to be reworked.')
-                            
-                            self.architecture.edges[cause]['perceived_interface_quality'] = 0
-                            
-                        elif type == 'procure': # feasibility problem
-                            if self.log_events:
-                                self.event_logger(f'Feasibility of {cause} has to be reworked.')
-                                
-                            self.architecture.nodes[cause]['perceived_definition_quality'] = 0
-                            
-                        else: # design checks
-                            definition_quality = self.architecture.nodes[cause]['definition_quality']
-                            design_quality = self.architecture.nodes[cause]['design_quality']
-                            if design_quality >= definition_quality: # design quality issues caused by feasibility
-                                self.architecture.nodes[cause]['perceived_definition_quality'] = 0
-                                
-                                if self.log_events:
-                                    self.event_logger(f'Feasibility of {cause} has to be reworked.')
-                                    
-                            else: # decrease feasibility perceived quality if design and feas
-                                missingQ = 1 - design_quality
-                                missingD = 1 - design_quality / definition_quality
-                                missingF = missingQ - missingD
-                                self.architecture.nodes[cause]['perceived_definition_quality'] *= (1 - missingF / missingQ)
-                            
-                                if self.log_events:
-                                    self.event_logger(f'Design of {cause} has to be reworked.')
-                                
+        # check outfacing interfaces and interfaces during component sim against feasibility quality
+        if activity_type == 'LF_System_Simulation' and not directly_impacted_activities: # for comp sim, the interfaces are checked. If system interfaces are included someday this could also be included here
+            return True # quantification was "successfull"
 
+        # get interfaces of components that are external
+        outgoing_edges = []
+        if not self.architecture_class.get_hierarchical_children(architecture_element):
+            for interface, edges in self.architecture.nodes[architecture_element]['interfaces'].items():
+                outgoing_edges.append(edges[0]) 
+        else:
+            all_descendants = self.architecture_class.get_all_hierarchical_descendants(architecture_element)
+            for decendent in all_descendants:
+                if not self.architecture_class.get_hierarchical_children:
+                    for interface, edges in self.architecture.nodes[architecture_element]['interfaces'].items():
+                        if interface not in all_descendants:
+                            outgoing_edges.append(edges[0]) 
 
-            # Event log
-            if self.log_events:
-                self.event_logger(f'"{task}" failed due to quality issues ({round(completion * 100)}% completion - overall quality: {round(perceived_quality, 3)}). {", ".join([f'"{activity}" ({quality})' for activity, quality in directly_impacted_activities.items()])} have to be reworked.')
+        # check outgoing edges
+        for edge in outgoing_edges:
+            perceived_interface_quality = self.architecture.edges[edge]['perceived_interface_quality']
+            if perceived_interface_quality and perceived_interface_quality[0] < random.random() * self.overall_quality_goal:
+                rework_causes.append((edge, edge[0], perceived_interface_quality[0], 'outgoing_interface'))
+
+        # delete unnecessary causes 
+        if len(rework_causes) > 1:
+            all_causing_elements = set()
+            for _, causing_element, _, _ in rework_causes:
+                all_causing_elements.add(causing_element)
+                
+            for cause in list(rework_causes):
+                for ancestor in self.architecture_class.get_all_ancestors(cause[1]):
+                    if ancestor in all_causing_elements:
+                        index = rework_causes.index(cause)
+                        rework_causes.pop(index)
+                        break # no need to further check this cause
+
+        # get impacted activities
+        for cause, causing_element, _, type in rework_causes:
             
-            # trigger rework and reset testing activity
-            self.reset_activities([quant_activity], 'Interrupted', quant_task=task)
-            activities_to_reset = set()
-            tasks_ready = []
-            all_impacted_elements = set()
-            for impacted_activity, quality in directly_impacted_activities.items():
-                tasks_ready.extend(self.activity_rework(impacted_activity, (1 - quality)))
-
-                impacted_element = self.activity_network.nodes[impacted_activity]['architecture_element']
+            if self.architecture_class.get_hierarchical_children(causing_element):
+                impacted_activity_type = 'System_Design'
+            else:
+                impacted_activity_type = 'Design'
+            
+            impacted_activity = self.activity_network_class.generate_activity_name(causing_element, impacted_activity_type)
+            
+            # quality used to determine rework amount
+            if type in {'interface', 'outgoing_interface'}:
+                interface_complexity = self.architecture.edges[cause]['complexity']
+                technical_complexity = self.architecture.nodes[causing_element]['technical_complexity']
+                info_percentage =  min(interface_complexity / technical_complexity, 1)
+                q = self.architecture_class.calc_interface_quality(cause)
+                cause_quality = q + (1 - info_percentage) * (1 - q)
+            else:
+                cause_quality = self.architecture.nodes[cause]['design_quality']
+            
+            if impacted_activity in directly_impacted_activities:
+                directly_impacted_activities[impacted_activity] *= cause_quality  
+            else:
+                directly_impacted_activities[impacted_activity] = cause_quality
+            
+            # perceived quality of interface or feasibility is set to 0 if it was the cause --> starts collaboration otherwise there only is a chance to start collab
+            if type == 'interface':
+                if self.log_events:
+                    self.event_logger(f'Interface from {cause[0]} to {cause[1]} has to be reworked.')
                 
-                # reset information used on interfaces
-                if activity_type not in {'LF_System_Simulation', 'Component_Simulation'} and self.architecture_class.get_hierarchical_children(architecture_element):
-                    if self.architecture_class.get_hierarchical_children(impacted_element):
-                        for element_component in self.architecture_class.get_all_components(impacted_element):
-                            for _, edge in self.architecture.nodes[element_component]['interfaces'].items():
-                                edge = edge[0]
-                                
-                                sum_info_used = 0
-                                n_info = len(self.architecture.edges[edge]['info_used'])
-                                for comp, cons in self.architecture.edges[edge]['info_used']:
-                                    sum_info_used += comp * cons
-
-                                average_info_used = sum_info_used / n_info
-                                                
-                                self.architecture.edges[edge]['info_used'] = []
-                                self.architecture.edges[edge]['old_info'] = average_info_used
-                    else:
-                        self.reset_interface_information(impacted_element, (1 - quality))
+                self.architecture.edges[cause]['perceived_interface_quality'] = 0
+            
+            elif type == 'outgoing_interface':
+                if self.log_events:
+                    self.event_logger(f'Interface from {cause[0]} to {cause[1]} has to be reworked.')
                 
-                # reset 
-                if activity_type in {'LF_System_Simulation', 'Component_Simulation'}:
-                    self.update_knowledge_quality(impacted_element, quality, second_order_rework=False)
+                effectivness = self.architecture.edges[cause]['perceived_interface_quality'][1]
+                self.architecture.edges[cause]['perceived_interface_quality'] = (0, effectivness) # has to trigger collaboration
+            
+            elif type == 'procure': # feasibility problem
+                if self.log_events:
+                    self.event_logger(f'Feasibility of {cause} has to be reworked.')
                     
-                else:
-                    self.update_knowledge_quality(impacted_element, quality, second_order_rework=True)
-                    all_impacted_elements.add(impacted_element)
-                    all_impacted_elements.update(self.architecture_class.get_all_hierarchical_descendants(impacted_element))
-                    all_impacted_elements.update(self.architecture_class.get_all_ancestors(impacted_element))
-
+                self.architecture.nodes[cause]['perceived_definition_quality'] = 0
                 
-            # reset activities inbetween
-            if activity_type not in {'LF_System_Simulation', 'Component_Simulation'}:
-                for impacted_activity in directly_impacted_activities:
-                    activity_paths = list(nx.all_simple_paths(self.activity_network, source=impacted_activity, target=quant_activity))
-                    for path in activity_paths:
-                        for activity in path:
-                            if activity not in {impacted_activity, quant_activity} and self.activity_network.nodes[activity]['architecture_element'] in all_impacted_elements:
-                                activities_to_reset.add(activity)
+            else: # design checks
+                definition_quality = self.architecture.nodes[cause]['definition_quality']
+                design_quality = self.architecture.nodes[cause]['design_quality']
+                if design_quality >= definition_quality: # design quality issues caused by feasibility
+                    self.architecture.nodes[cause]['perceived_definition_quality'] = 0
+                    
+                    if self.log_events:
+                        self.event_logger(f'Feasibility of {cause} has to be reworked.')
+                        
+                else: # decrease feasibility perceived quality if design and feas
+                    missingQ = 1 - design_quality
+                    missingD = 1 - design_quality / definition_quality
+                    missingF = missingQ - missingD
+                    self.architecture.nodes[cause]['perceived_definition_quality'] *= (1 - missingF / missingQ)
+                
+                    if self.log_events:
+                        self.event_logger(f'Design of {cause} has to be reworked.')
+                    
 
-                self.reset_activities(list(activities_to_reset), 'Rework Required')
+        if not directly_impacted_activities:
+            return True # quantification was "successfull"
+
+        completion = ( self.activity_network.nodes[quant_activity]['n_completed_tasks'] - 1 ) / self.activity_network.nodes[quant_activity]['num_tasks']
+        
+        # Event log
+        if self.log_events:
+            self.event_logger(f'"{task}" failed due to quality issues ({round(completion * 100)}% completion - overall quality: {round(perceived_quality, 3)}). {", ".join([f'"{activity}" ({quality})' for activity, quality in directly_impacted_activities.items()])} have to be reworked.')
+        
+        # trigger rework and reset testing activity
+        self.reset_activities([quant_activity], 'Interrupted', quant_task=task)
+        activities_to_reset = set()
+        tasks_ready = []
+        all_impacted_elements = set()
+        for impacted_activity, quality in directly_impacted_activities.items():
+            tasks_ready.extend(self.activity_rework(impacted_activity, (1 - quality)))
+
+            impacted_element = self.activity_network.nodes[impacted_activity]['architecture_element']
             
-                # check other activities that have been completed or ongoing (for second order rework, that might trigger rework for ongoing work)
-                self.check_successor_rework(list(directly_impacted_activities))
+            # reset information used on interfaces
+            if activity_type not in {'LF_System_Simulation', 'Component_Simulation'} and self.architecture_class.get_hierarchical_children(architecture_element):
+                if self.architecture_class.get_hierarchical_children(impacted_element):
+                    for element_component in self.architecture_class.get_all_components(impacted_element):
+                        for _, edge in self.architecture.nodes[element_component]['interfaces'].items():
+                            edge = edge[0]
+                            
+                            sum_info_used = 0
+                            n_info = len(self.architecture.edges[edge]['info_used'])
+                            for comp, cons in self.architecture.edges[edge]['info_used']:
+                                sum_info_used += comp * cons
+
+                            average_info_used = sum_info_used / n_info
+                                            
+                            self.architecture.edges[edge]['info_used'] = []
+                            self.architecture.edges[edge]['old_info'] = average_info_used
+                else:
+                    self.reset_interface_information(impacted_element, (1 - quality))
             
-            # information sharing task
-            info_amount = completion * self.activity_network.nodes[quant_activity]['effort']
-            self.assign_task(agent, task_type='Share_Information', info={'task': task, 'info_amount': info_amount, 'start_condition_for': tasks_ready, 'rework_info': True})
+            # reset 
+            if activity_type in {'LF_System_Simulation', 'Component_Simulation'}:
+                self.update_knowledge_quality(impacted_element, quality, second_order_rework=False)
+                
+            else:
+                self.update_knowledge_quality(impacted_element, quality, second_order_rework=True)
+                all_impacted_elements.add(impacted_element)
+                all_impacted_elements.update(self.architecture_class.get_all_hierarchical_descendants(impacted_element))
+                all_impacted_elements.update(self.architecture_class.get_all_ancestors(impacted_element))
+
             
-            return False # quantification not successful
+        # reset activities inbetween
+        if activity_type not in {'LF_System_Simulation', 'Component_Simulation'}:
+            for impacted_activity in directly_impacted_activities:
+                activity_paths = list(nx.all_simple_paths(self.activity_network, source=impacted_activity, target=quant_activity))
+                for path in activity_paths:
+                    for activity in path:
+                        if activity not in {impacted_activity, quant_activity} and self.activity_network.nodes[activity]['architecture_element'] in all_impacted_elements:
+                            activities_to_reset.add(activity)
+
+            self.reset_activities(list(activities_to_reset), 'Rework Required')
+        
+            # check other activities that have been completed or ongoing (for second order rework, that might trigger rework for ongoing work)
+            self.check_successor_rework(list(directly_impacted_activities))
+        
+        # information sharing task
+        info_amount = completion * self.activity_network.nodes[quant_activity]['effort']
+        self.assign_task(agent, task_type='Share_Information', info={'task': task, 'info_amount': info_amount, 'start_condition_for': tasks_ready, 'rework_info': True})
+        
+        return False # quantification not successful
 
     
-    def calc_quantification_result(self, task, agent):
-        architecture_element = self.task_network.nodes[task]['architecture_element']
+    def calc_quantification_result(self, task, architecture_element, agent):
         activity = self.task_network.nodes[task]['activity_name']
         activity_type = self.activity_network.nodes[activity]['activity_type']
         n_tasks_completed = self.activity_network.nodes[activity]['n_completed_tasks']
@@ -1483,12 +1515,13 @@ class PDsim:
         if activity_type != 'LF_System_Simulation':
             self.calc_perceived_quality(architecture_element, 'design_quality', activity_type, accuracy, n_tasks_completed, uncertainty)
 
-        # perceived_feasibility
+        # perceived feasibility
         self.calc_perceived_quality(architecture_element, 'definition_quality', activity_type, accuracy, n_tasks_completed, uncertainty)
         
         # perceived quality of lower level elements
         if self.architecture_class.get_hierarchical_children(architecture_element) and activity_type in {'HF_System_Simulation', 'Testing'}:
-            for decendant in self.architecture_class.get_all_hierarchical_descendants(architecture_element):
+            all_decendants = self.architecture_class.get_all_hierarchical_descendants(architecture_element)
+            for decendant in all_decendants:
                 quality_to_reset = f'Higher_Level_From_{activity}'
                 
                 # design quality and feasibility
@@ -1497,11 +1530,18 @@ class PDsim:
                 
                 # interface quality
                 if not self.architecture_class.get_hierarchical_children(decendant):
-                    for _, edge in self.architecture.nodes[decendant]['interfaces'].items():
-                        self.calc_perceived_quality(edge[0], 'interface_quality', quality_to_reset, accuracy, n_tasks_completed, uncertainty)
-                
+                    for dep_element, edge in self.architecture.nodes[decendant]['interfaces'].items():
+                        if dep_element in all_decendants: 
+                            self.calc_perceived_quality(edge[0], 'interface_quality', quality_to_reset, accuracy, n_tasks_completed, uncertainty)
+                        else: # limited to feasibility
+                            self.calc_perceived_quality(edge[0], 'interface_quality', quality_to_reset, accuracy, n_tasks_completed, uncertainty, reduced_effectivness=True)
         
-        return perceived_quality, uncertainty, accuracy
+        # interface quality during component sim or testing (limited to feasibility)
+        if not self.architecture_class.get_hierarchical_children(architecture_element):
+            for dep_element, edge in self.architecture.nodes[architecture_element]['interfaces'].items():
+                    self.calc_perceived_quality(edge[0], 'interface_quality', None, accuracy, n_tasks_completed, uncertainty, reduced_effectivness=True)  
+        
+        return perceived_quality
     
     
     # perceived quality is the comultative mean of all perceived quality values
@@ -1513,7 +1553,7 @@ class PDsim:
             return new_quality
     
     
-    def calc_perceived_quality(self, element, quality_type, quality_to_reset, accuracy, tasks_completed, uncertainty=None, upper_limit_acc=1):
+    def calc_perceived_quality(self, element, quality_type, quality_to_reset, accuracy, tasks_completed=None, uncertainty=None, upper_limit_acc=1, set_values=True, reduced_effectivness=False):
         
         if quality_type == 'interface_quality':
             actual_quality = self.architecture_class.calc_interface_quality(element)
@@ -1532,22 +1572,31 @@ class PDsim:
                 uncertainty = 1
         else:
             return_uncertainty = False
+            
         perceived_quality = actual_quality + (upper_limit - actual_quality) * uncertainty
         
-        if quality_type == 'design_quality':
-            if use_uncertainty_for_validation:
-                self.architecture.nodes[element]['perceived_quality'][quality_to_reset] = self.calc_mean_quality_update(element, quality_to_reset, tasks_completed, perceived_quality)
+        if quality_type == 'interface_quality' and reduced_effectivness:
+            interface_feasibility = self.architecture.edges[element]['definition_quality']
+            interface_complexity = self.architecture.edges[element]['complexity']
+            if interface_feasibility * valididation_of_external_interfaces_factor / interface_complexity > random.random():
+                perceived_quality = (perceived_quality, interface_feasibility) # effectivness reduced to feasibility
             else:
-                self.architecture.nodes[element]['perceived_quality'][quality_to_reset] = perceived_quality
+                perceived_quality = None # only some can be detected --> only quality defined by feasibility can be checked
         
+        if set_values:
+            if quality_type == 'design_quality':
+                if use_uncertainty_for_validation:
+                    self.architecture.nodes[element]['perceived_quality'][quality_to_reset] = self.calc_mean_quality_update(element, quality_to_reset, tasks_completed, perceived_quality)
+                else:
+                    self.architecture.nodes[element]['perceived_quality'][quality_to_reset] = perceived_quality
+            
+            # this is a bit quick and dirty --> would have to be done similar to the design quality
+            elif quality_type == 'interface_quality':
+                self.architecture.edges[element]['perceived_interface_quality'] = perceived_quality
+            elif quality_type == 'definition_quality':
+                self.architecture.nodes[element]['perceived_definition_quality'] = perceived_quality
         
-        # this is a bit quick and dirty --> would have to be done similar to the design quality
-        elif quality_type == 'interface_quality':
-            self.architecture.edges[element]['perceived_interface_quality'] = perceived_quality
-        elif quality_type == 'definition_quality':
-            self.architecture.nodes[element]['perceived_definition_quality'] = perceived_quality
-        
-        if return_uncertainty:
+        if return_uncertainty and set_values:
             return perceived_quality, uncertainty
         else:
             return perceived_quality
@@ -2126,9 +2175,11 @@ class PDsim:
             # event log
             if self.log_events:
                 self.event_logger(f'{task} can be continued by {agent} because all requested information has been received.')
-        
-        
+
+
         # check if collaboration for interface or feasbility is necessary
+        
+        ###### edge case exists where rework from HF is caused by second order rework while information from testing is being received
         if task_info.get('rework_info', False):
             rework_element = self.task_network.nodes[task]['architecture_element']
             activity_name = self.task_network.nodes[task]['activity_name']
@@ -2147,13 +2198,21 @@ class PDsim:
                 if self.check_if_idle(agent) and self.check_if_idle(parent_element_agent):
                     self.start_collaboration(task, parent_element_agent, agent, rework_element, 1, 'Feasibility')
                 else:
-                    self.add_request(agent, parent_element_agent, type='Collaboration', info={'task': task, 'element': rework_element, 'sub_type': 'Feasibility', 'perceived_feasibility': 1})
+                    self.add_request(agent, parent_element_agent, type='Collaboration', info={'task': task, 'element': rework_element, 'sub_type': 'Feasibility', 'effectivness': 1})
             
             # interfaces
             if not self.architecture_class.get_hierarchical_children(rework_element):
                 for dep_element, edge in self.architecture.nodes[rework_element]['interfaces'].items():
                     edge = edge[0]
+                    
                     perceived_interface_quality = self.architecture.edges[edge]['perceived_interface_quality']
+                    
+                    if isinstance(perceived_interface_quality, tuple):
+                        effectivness = perceived_interface_quality[1]
+                        perceived_interface_quality = perceived_interface_quality[0]
+                    else:
+                        effectivness = 1
+                    
                     self.architecture.edges[edge]['perceived_interface_quality'] = None # set to none because it will not be needed anymore until it is recalculated
                     
                     if perceived_interface_quality and random.random() > perceived_interface_quality:
@@ -2161,11 +2220,11 @@ class PDsim:
                         self.activity_network.nodes[activity_name]['activity_status'] = 'Interface or Feasibility Problem'
                         
                         dep_element_agent = self.architecture.nodes[dep_element]['responsible_designer']
-                        
+
                         if self.check_if_idle(agent) and self.check_if_idle(dep_element_agent):
-                            self.start_collaboration(task, agent, dep_element_agent, dep_element, 1, 'Interface') 
+                            self.start_collaboration(task, agent, dep_element_agent, dep_element, effectivness, 'Interface') 
                         else:
-                            self.add_request(dep_element_agent, agent, type='Collaboration', info={'task': task, 'element': dep_element, 'sub_type': 'Interface', 'rework_percent': 1})
+                            self.add_request(dep_element_agent, agent, type='Collaboration', info={'task': task, 'element': dep_element, 'sub_type': 'Interface', 'effectivness': effectivness})
             
         
         # check if design is compatible with received information
@@ -2181,6 +2240,7 @@ class PDsim:
                 
                 rework_percentage = []
                 causing_dep_elements = []
+                effectivness_values = []
                 
                 interfaces = sorted(list(self.architecture.nodes[element]['interfaces'].items()))
                 random.shuffle(interfaces)
@@ -2189,40 +2249,53 @@ class PDsim:
                     feasibility = self.architecture.edges[element, dep_element]['definition_quality']
                     
                     # quality of available information checked against feasibility
-                    if min(1, feasibility) * random.random() > quality:
+                    if feasibility > random.random() and random.random() > quality: # only the percentage of defined interfaces can be detected
                         rework_percent = self.calculate_rework_percent(agent, element, dep_element, new_info_amount, quality, 'System_Design') * feasibility
+                        consitency = self.org_network.get_agent(agent)['product_information_consitency'][element]['System_Design']
+                        effectivness = consitency * feasibility
                         
                         rework_percentage.append(rework_percent)
                         causing_dep_elements.append(dep_element)
+                        effectivness_values.append(effectivness)
                     
-                    # check if relevant new information to compare
+                    # check if relevant new information to compare --> quality of information that is available on both sides is compared
                     dep_element_completeness = self.org_network.get_agent(agent)['product_information_completeness'][dep_element]['System_Design']
                     relevant_new_info = min(element_info_completeness, dep_element_completeness) - old_info_completness
                     if relevant_new_info > 0: # can only compare to the lower level of completion and if new information is included in this portion
                         
-                        # could also include second order rework check (change propagation through interfaces) --> not considered currently
+                        #### could also include second order rework check (change propagation through interfaces) --> not considered currently
                         
                         tool = self.activity_network.nodes[self.activity_network_class.generate_activity_name(self.org_network.get_agent(agent)['responsible_element'] , 'System_Design')]['tool']
-                        if random.random() < self.tools[tool]['accuracy']: # detection of problems that go beyond the defined feasibility quality
-                            
-                            # quality of information that is available on both sides 
-                            if random.random() > quality: 
-                                rework_percent = self.calculate_rework_percent(agent, element, dep_element, relevant_new_info, quality, 'System_Design') * (1 - feasibility)
-                                                            
-                                if causing_dep_elements and causing_dep_elements[-1] == dep_element:
-                                    rework_percentage[-1] += rework_percent
-                                else:
-                                    rework_percentage.append(rework_percent)
-                                    causing_dep_elements.append(dep_element)
+                        expertise = self.org_network.get_agent(agent)['expertise']
+                        comp1 = help_fnc.calc_efficiency_competency(self.architecture.nodes[element]['knowledge_req'], expertise)[1]
+                        comp2 = help_fnc.calc_efficiency_competency(self.architecture.nodes[dep_element]['knowledge_req'], expertise)[1]
+                        detection_accuracy = self.tools[tool]['accuracy'] * self.calc_EngTool_effectivness(agent, tool, use_excess=False) + (comp1 + comp2) / 2
+                        
+                        perceived_interface_quality = self.calc_perceived_quality((element, dep_element), 'interface_quality', None, detection_accuracy, upper_limit_acc=2, set_values=False)    
+                        if random.random() > perceived_interface_quality: 
+                            rework_percent = self.calculate_rework_percent(agent, element, dep_element, relevant_new_info, quality, 'System_Design') * (1 - feasibility)
+                            consitency = self.org_network.get_agent(agent)['product_information_consitency'][element]['System_Design']
+                            effectivness = consitency * (1 - feasibility)
+                                        
+                            if causing_dep_elements and causing_dep_elements[-1] == dep_element:
+                                rework_percentage[-1] += rework_percent
+                                effectivness_values[-1] = consitency # both triggered
+                            else:
+                                rework_percentage.append(rework_percent)
+                                causing_dep_elements.append(dep_element)
+                                effectivness_values.append(effectivness)
                                 
+                        perceived_interface_quality_dep = self.calc_perceived_quality((dep_element, element), 'interface_quality', None, detection_accuracy, upper_limit_acc=2, set_values=False) 
+                        if random.random() > perceived_interface_quality_dep:
                             dep_quality = self.architecture_class.calc_interface_quality((dep_element, element))
-                            if random.random() > dep_quality:
-                                rework_percent = self.calculate_rework_percent(agent, dep_element, element, relevant_new_info, dep_quality, 'System_Design') * (1 - feasibility)
-
-                                interface_rework[dep_element] = ([rework_percent], [element])
+                            rework_percent = self.calculate_rework_percent(agent, dep_element, element, relevant_new_info, dep_quality, 'System_Design')
+                            consitency = self.org_network.get_agent(agent)['product_information_consitency'][dep_element]['System_Design']
+                            effectivness = consitency * (1 - feasibility)
+                            
+                            interface_rework[dep_element] = ([rework_percent], [element], [effectivness])
                         
                         
-                interface_rework[element] = (rework_percentage, causing_dep_elements)
+                interface_rework[element] = (rework_percentage, causing_dep_elements, effectivness_values)
                          
             else: # dependent element check 
                 own_element = activity_node['architecture_element']
@@ -2230,41 +2303,43 @@ class PDsim:
                 element_info_to_check = sorted(list(element_info_to_check.items()))
                 random.shuffle(element_info_to_check)
                 for element, new_info_amount in element_info_to_check:
-                    quality = self.architecture_class.calc_interface_quality((element, own_element))
-                    # check quality by comparing the available information
-                    if random.random() > quality:
-                        own_info_completeness = self.org_network.get_agent(agent)['product_information_completeness'][own_element][activity_type]
-                        dep_info_completeness = self.org_network.get_agent(agent)['product_information_completeness'][element][activity_type]
-                        old_dep_info_completeness = dep_info_completeness - new_info_amount
-                        relevant_new_info = min(own_info_completeness, dep_info_completeness) - old_dep_info_completeness
-                        
-                        if relevant_new_info > 0:
-                            rework_percent = self.calculate_rework_percent(agent, element, own_element, relevant_new_info, quality, activity_type)
-                            
-                            interface_rework[element] = ([rework_percent], [own_element])
+                    own_info_completeness = self.org_network.get_agent(agent)['product_information_completeness'][own_element][activity_type]
+                    dep_info_completeness = self.org_network.get_agent(agent)['product_information_completeness'][element][activity_type]
+                    old_dep_info_completeness = dep_info_completeness - new_info_amount
+                    relevant_new_info = min(own_info_completeness, dep_info_completeness) - old_dep_info_completeness
+                    
+                    if relevant_new_info > 0:
+                        # check quality by comparing the available information
+                        expertise = self.org_network.get_agent(agent)['expertise']
+                        competency = help_fnc.calc_efficiency_competency(self.architecture.nodes[element]['knowledge_req'], expertise)[1]
+                        perceived_interface_quality = self.calc_perceived_quality((element, own_element), 'interface_quality', None, competency, upper_limit_acc=1, set_values=False) 
+                        if random.random() > perceived_interface_quality:
+                                quality = self.architecture_class.calc_interface_quality((element, own_element))
+                                rework_percent = self.calculate_rework_percent(agent, element, own_element, relevant_new_info, quality, activity_type)
+                                consitency = self.org_network.get_agent(agent)['product_information_consitency'][element][activity_type]
+                                
+                                interface_rework[element] = ([rework_percent], [own_element], [consitency])
             
             # delete small rework
             for element in list(interface_rework.keys()):
-                percent_list, causing_list = interface_rework[element]
+                percent_list, causing_list, effectivness_list = interface_rework[element]
 
                 new_percent_list = []
                 new_causing_list = []
-                for p, c in zip(percent_list, causing_list):
+                new_effectivness_list = []
+                for p, c, e in zip(percent_list, causing_list, effectivness_list):
                     if p >= 0.01: # 1 % rework
                         new_percent_list.append(p)
                         new_causing_list.append(c)
+                        new_effectivness_list.append(e)
 
                 if new_percent_list:
-                    interface_rework[element] = (new_percent_list, new_causing_list)
+                    interface_rework[element] = (new_percent_list, new_causing_list, new_effectivness_list)
                 else:
                     del interface_rework[element]
             
             # start rework and collaboration
-            if task_info.get('Compatibility_Check', False):
-                consitency = self.org_network.get_agent(agent)['product_information_consitency'][element]['System_Design']
-            else:
-                consitency = self.org_network.get_agent(agent)['product_information_consitency'][element][activity_type]
-            self.interface_problem(interface_rework, originating_task, consitency)
+            self.interface_problem(interface_rework, originating_task)
     
     
     def calculate_rework_percent(self, agent, element, dependent_element, relvant_info, quality, activity_type):
@@ -2276,9 +2351,9 @@ class PDsim:
         return relvant_info * (1 - quality) * info_percentage * consitency # consitency added to account for double rework being reduced
 
                         
-    def interface_problem(self, interface_rework, originating_task, consitency):          
+    def interface_problem(self, interface_rework, originating_task):          
             # start or request consultation and reset activities    
-            for element, (rework_percentages, dep_elements) in interface_rework.items():                
+            for element, (rework_percentages, dep_elements, effectivness_list) in interface_rework.items():                
                 
                 if self.architecture_class.get_hierarchical_children(element):
                     activity = self.activity_network_class.generate_activity_name(element, 'System_Design')
@@ -2294,12 +2369,14 @@ class PDsim:
                             index = dep_elements.index(task_in_q_data['additional_info']['element'])
                             dep_elements.pop(index)
                             rework_percentages.pop(index)
+                            effectivness_list.pop(index)
                             
                     for request in self.org_network.get_agent(rework_element_agent)['pending_collab_requests']:
                         if request['request_type'] == 'Collaboration' and request['element'] in dep_elements:
                             index = dep_elements.index(request['element'])
                             dep_elements.pop(index)
                             rework_percentages.pop(index)
+                            effectivness_list.pop(index)
                             
                 if not dep_elements:
                     continue
@@ -2318,9 +2395,9 @@ class PDsim:
                 # reset activity and information
                 rework = 1
                 for percent in rework_percentages:
-                    rework *= percent
-                rework_task = self.activity_rework(activity, rework)
-                self.reset_interface_information(element, rework)
+                    rework *= (1 - percent)
+                rework_task = self.activity_rework(activity, 1-rework)
+                self.reset_interface_information(element, 1-rework)
                 rework_task = rework_task[0] if rework_task else []
                 
                 if knowledge_reset:
@@ -2329,7 +2406,7 @@ class PDsim:
                     else:
                         self.reset_activities(self.activity_network.successors(activity), reset_reason='Rework Required')
                 
-                self.update_knowledge_quality(element, 1-rework, second_order_rework=True, start_with_first_order=False, reset_knowledge=knowledge_reset)
+                self.update_knowledge_quality(element, rework, second_order_rework=True, start_with_first_order=False, reset_knowledge=knowledge_reset)
                 
                 # reset all tasks in activity to be reworked
                 self.reset_information_tasks(activity, rework_task, originating_task, element)
@@ -2344,13 +2421,13 @@ class PDsim:
                 self.activity_network.nodes[activity]['activity_status'] = 'Interface or Feasibility Problem'
 
                 # create collaboration tasks or requests
-                for dep_element in dep_elements:
+                for dep_element, effectivness in zip(dep_elements, effectivness_list):
                     dep_element_agent = self.architecture.nodes[dep_element]['responsible_designer']
                     
                     if self.check_if_idle(rework_element_agent) and self.check_if_idle(dep_element_agent):
-                        self.start_collaboration(rework_task, rework_element_agent, dep_element_agent, dep_element, consitency, 'Interface')
+                        self.start_collaboration(rework_task, rework_element_agent, dep_element_agent, dep_element, effectivness, 'Interface')
                     else:
-                        self.add_request(dep_element_agent, rework_element_agent, type='Collaboration', info={'task': rework_task, 'element': dep_element, 'sub_type': 'Interface', 'rework_percent': consitency})
+                        self.add_request(dep_element_agent, rework_element_agent, type='Collaboration', info={'task': rework_task, 'element': dep_element, 'sub_type': 'Interface', 'effectivness': effectivness})
 
     
     def reset_information_tasks(self, activity, rework_task, originating_task, element):
@@ -2402,7 +2479,7 @@ class PDsim:
         # increase product knowledge
         element_for_knowledge_gain = task_info['element']
         inital_knowledge = self.org_network.get_agent(agent)['product_knowledge'][element_for_knowledge_gain]
-        knowledge_gain = help_fnc.calc_knowledge_gain(inital_knowledge, complexity, additional_factor=task_info['rework_percent'])
+        knowledge_gain = help_fnc.calc_knowledge_gain(inital_knowledge, complexity, additional_factor=task_info['effectivness'])
         self.org_network.get_agent(agent)['product_knowledge'][element_for_knowledge_gain] = inital_knowledge + knowledge_gain
         
         
@@ -2671,12 +2748,9 @@ class PDsim:
                 req_information['sub_type'] = info['sub_type']
                 pending_req['sub_type'] = info['sub_type']
                 
-                if info['sub_type'] == 'Interface':
-                    req_information['rework_percent'] = info['rework_percent']
-                    pending_req['rework_percent'] = info['rework_percent']
-                else:
-                    req_information['perceived_feasibility'] =info['perceived_feasibility']
-                    pending_req['perceived_feasibility'] =info['perceived_feasibility']
+
+                req_information['effectivness'] =info['effectivness']
+                pending_req['effectivness'] =info['effectivness']
                 
                 req_information['element'] = info['element']
                 pending_req['element'] = info['element']
@@ -3282,7 +3356,7 @@ class PDsim:
                 # effort and cost tracker
                 self.personnel_tracker[agent].append(data['state'])
                 if data['state'] != 'Noise': # noise not relevant for the cost and effort of a project
-                    cost = step_size * data['salary'] / (52 * work_days_per_week * work_hours_per_day)
+                    cost = step_size * data['salary'] / (52.14 * work_days_per_week * work_hours_per_day)
                     total_cost_with_idle += cost
                     
                     if data['state'] != 'Idle':
@@ -3292,6 +3366,12 @@ class PDsim:
                         self.total_work_development_work += step_size
                     
                     if data['state'] not in {'Idle', 'Waiting'}:
+                        tech_task = data['technical_task']
+                        active_activity = self.task_network.nodes[tech_task]['activity_name']
+                        
+                        if self.task_network.nodes[tech_task]['activity_type'] in {'Prototyping', 'Testing'}:
+                            cost *= physical_cost_red_factor
+                        
                         total_effort += step_size
                         
                         # get tool cost
@@ -3302,6 +3382,7 @@ class PDsim:
                             elif 'cost_per_month' in self.tools[tool]:
                                 tool_cost = step_size * self.tools[tool]['cost_per_month'] / (work_hours_per_day * work_days_per_week * 4.35) # 4.35 weeks per month
                             cost += tool_cost
+                            total_cost_with_idle += tool_cost
                         
                         if data['state'] in {'Receive_Information', 'Share_Information', 'Search_Knowledge_Base'}:
                             cost += self.knowledge_base['cost_per_month'] * step_size / (work_hours_per_day * work_days_per_week * 4.35) # 4.35 weeks per month
@@ -3309,8 +3390,6 @@ class PDsim:
                         total_cost += cost
 
                         # active tasks tracker
-                        tech_task = data['technical_task']
-                        active_activity = self.task_network.nodes[tech_task]['activity_name']
                         if data['state'] not in {'Check_Interface_Compatibility'}:#, 'Collaboration'}:
                             active_technical_tasks.add(tech_task)
                             active_activities.add(active_activity)
@@ -3394,8 +3473,8 @@ class PDsim:
                 if last_state in {'In Progress', 'Reworking'}:
                     self.gantt_tracker[activity].append(('Paused', self.global_clock))
             # reworking       
-            elif any([self.task_network.nodes[task]['repetitions'] >= 1 and not (self.task_network.nodes[tech_task]['repetitions'] == 1 
-                                                                                and self.task_network.nodes[tech_task]['task_status'] in {'Completed', 'Sharing Information'})
+            elif any([self.task_network.nodes[task]['repetitions'] >= 1 and not (self.task_network.nodes[task]['repetitions'] == 1 
+                                                                                and self.task_network.nodes[task]['task_status'] in {'Completed', 'Sharing Information'})
                       for task in list(active_technical_tasks) 
                       if self.task_network.nodes[task]['activity_name'] == activity and
                       last_state != 'In Progress']):
@@ -4213,8 +4292,8 @@ if __name__ == "__main__":
         overall_quality_goal=0.90,
         
         # Input data location (None for test data)
-        folder='Architecture/Inputs/DOE3 - New Tool/DOE3-11',
-        #folder='Architecture/Inputs/Baseline',
+        #folder='Architecture/Inputs/DOE3 - New Tool/DOE3-11',
+        folder='Architecture/Inputs/Baseline',
         
         # debugging
         debug=False, 
@@ -4227,7 +4306,7 @@ if __name__ == "__main__":
         slow_logs=False,
         print_status=True,
         
-        random_seed=4# 2275587096
+        random_seed=None
     )
     
     sim.sim_run()

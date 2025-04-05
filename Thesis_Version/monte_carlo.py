@@ -1,6 +1,7 @@
 import random
 import time
 import datetime
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter, ScalarFormatter
@@ -338,7 +339,7 @@ class MonteCarlo():
 
         plt.tight_layout(pad=0)
         plt.savefig(self.save_folder + '/convergence_relative.svg', format='svg')
-        plt.savefig(self.save_folder + '/convergence_relative.png')
+        #plt.savefig(self.save_folder + '/convergence_relative.png')
         if show_plot:
             plt.show()
             
@@ -611,6 +612,8 @@ def calculate_risk(lead_times, costs, lead_time_target, cost_target, risk_calc_s
 
 
 def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_target, cost_target, folder_name, show_plots=True):
+    def one_decimals(x, pos):
+        return f'{x:.1f}'
     def two_decimals(x, pos):
         return f'{x:.2f}'
     
@@ -621,17 +624,20 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     labelsize = 12
     nbins = 20
     
-    fig, axes = plt.subplots(1, 2, figsize=(7.5, 3))
+    fig, axes = plt.subplots(1, 2, figsize=(6, 2.2))
     
 
     # Lead time in weeks
+    lead_times_in_weeks = lead_times_in_weeks / 52.14 * 12
+    lead_time_target = lead_time_target / 52.14 * 12
+    
     counts, bins = np.histogram(lead_times_in_weeks, bins=nbins)
     relative_probabilities = counts / len(lead_times_in_weeks)
-    axes[0].bar(bins[:-1], relative_probabilities, width=np.diff(bins), color='lightgray',edgecolor="black", align="edge")
-    axes[0].set_xlabel('Lead Time (weeks)', fontsize=labelsize)
-    axes[0].set_ylabel('Relative Probability', fontsize=labelsize, fontweight='bold')
-    axes[0].yaxis.set_major_formatter(FuncFormatter(two_decimals))
-    axes[0].xaxis.set_major_formatter(FuncFormatter(no_decimal))
+    axes[0].bar(bins[:-1], relative_probabilities, width=np.diff(bins), color='lightgray',edgecolor="black", align="edge", linewidth=0.7)
+    axes[0].set_xlabel('Lead Time (months)', fontsize=labelsize)
+    axes[0].set_ylabel('Relative Probability', fontsize=11)
+    axes[0].yaxis.set_major_formatter(FuncFormatter(one_decimals))
+    axes[0].xaxis.set_major_formatter(FuncFormatter(one_decimals))
     axes[0].tick_params(axis='both', which='major', labelsize=ticksize)
 
     # CDF
@@ -642,8 +648,8 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     cdf = np.append(cdf, 1)
     bin_centers = np.insert(bin_centers, 0, bins[0])
     bin_centers = np.append(bin_centers, bins[-1])
-    ax2.plot(bin_centers, cdf, color='royalblue') # black
-    ax2.set_ylabel('Cumulative Probability', fontsize=labelsize, color='royalblue', fontweight='bold') # black
+    ax2.plot(bin_centers, cdf, color='black', linewidth=1.0) # black
+    ax2.set_ylabel('Cumulative Probability', fontsize=11) # black
     ax2.tick_params(axis='both', which='major', labelsize=ticksize)
 
     # ticks and grid
@@ -661,23 +667,24 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
             primary_ticks[i] = round(tick * factor, 2)
     axes[0].set_yticks(primary_ticks)
     axes[0].set_xticks(time_ticks)
-    axes[0].grid(True, axis='y', which='both', linestyle='-', linewidth=1, color='black')
     ax2.grid(False)
     
     # Target 
-    axes[0].axvline(x=lead_time_target, color='red', linestyle='--', linewidth=2) # dimgray
+    axes[0].axvline(x=lead_time_target, color='dimgray', linestyle='--', linewidth=1.5) # dimgray
     axes[0].text(lead_time_target, axes[0].get_ylim()[1], f'Target', # Lead Time: {lead_time_target} weeks', 
             color='black', ha='center', va='bottom', fontsize=ticksize)
 
 
     # Cost in thousands
+    costs_in_thousands = costs_in_thousands / 1000
+    cost_target = cost_target / 1000
     counts, bins = np.histogram(costs_in_thousands, bins=nbins) 
     relative_probabilities = counts / len(costs_in_thousands)
-    axes[1].bar(bins[:-1], relative_probabilities, width=np.diff(bins), color='lightgray',edgecolor="black", align="edge")
-    axes[1].set_xlabel('Cost ($k)', fontsize=labelsize)
-    axes[1].set_ylabel('Relative Probability', fontsize=labelsize, fontweight='bold')
-    axes[1].yaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.2f}'))
-    axes[1].xaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{int(x)}'))
+    axes[1].bar(bins[:-1], relative_probabilities, width=np.diff(bins), color='lightgray',edgecolor="black", align="edge", linewidth=0.7)
+    axes[1].set_xlabel('Cost ($m)', fontsize=labelsize)
+    axes[1].set_ylabel('Relative Probability', fontsize=11)
+    axes[1].yaxis.set_major_formatter(FuncFormatter(one_decimals))
+    axes[1].xaxis.set_major_formatter(FuncFormatter(two_decimals))
     axes[1].tick_params(axis='both', which='major', labelsize=ticksize)
 
     # CDF
@@ -688,8 +695,8 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     cdf = np.append(cdf, 1)
     bin_centers = np.insert(bin_centers, 0, bins[0])
     bin_centers = np.append(bin_centers, bins[-1])
-    ax2.plot(bin_centers, cdf, color='royalblue') # black
-    ax2.set_ylabel('Cumulative Probability', fontsize=labelsize, color='royalblue', fontweight='bold') # black
+    ax2.plot(bin_centers, cdf, color='black', linewidth=1.0) # black
+    ax2.set_ylabel('Cumulative Probability', fontsize=11) # black
     ax2.tick_params(axis='both', which='major', labelsize=ticksize)
 
     # limits, ticks, and grid
@@ -706,11 +713,10 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
         axes[0].set_yticks(primary_ticks)
     axes[1].set_yticks(primary_ticks)
     axes[1].set_xticks(cost_ticks)
-    axes[1].grid(True, axis='y', which='both', linestyle='-', linewidth=1, color='black')
     ax2.grid(False)
     
     # Target 
-    axes[1].axvline(x=cost_target, color='red', linestyle='--', linewidth=2) # dimgray
+    axes[1].axvline(x=cost_target, color='dimgray', linestyle='--', linewidth=1.5) # dimgray
     axes[1].text(cost_target, axes[1].get_ylim()[1], f'Target', # Cost: ${cost_target}k', 
             color='black', ha='center', va='bottom', fontsize=ticksize)
     
@@ -718,13 +724,20 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     #axes[1].text(0.5, -0.25, '(b)', transform=axes[1].transAxes, fontsize=labelsize, ha='center', va='center')
     
     plt.tight_layout(pad=0)#rect=[0, 0, 1, 0.95])
-    fig.subplots_adjust(wspace=0.5)
-    plt.savefig(folder_name + '/monte_carlo_pdf_cdf.png')
+    fig.subplots_adjust(wspace=0.6)
+    #plt.savefig(folder_name + '/monte_carlo_pdf_cdf.png')
     plt.savefig(folder_name + '/monte_carlo_pdf_cdf.svg', format='svg')
     if show_plots:
         plt.show()
 
+    return
 
+
+def plot_cost_lead_time_conture(lead_times_in_weeks, costs_in_thousands, lead_time_target, cost_target, folder_name, show_plots=True):
+    labelsize = 12
+    ticksize = 10
+    
+    
     plt.figure(figsize=(7.5, 7.5))
     
     nbins = nbins ** 2
@@ -739,7 +752,7 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     lower_half_cmap = mcolors.LinearSegmentedColormap.from_list('lower_half', cmap(np.linspace(0, 0.4, 256)))
     c1 = plt.contourf(xi, yi, zi.reshape(xi.shape), levels=4, cmap=lower_half_cmap)
     cbar = plt.colorbar(c1)
-    cbar.set_label('Relative Probability', fontsize=labelsize, fontweight='bold')
+    cbar.set_label('Relative Probability', fontsize=labelsize)
     cbar.formatter = ScalarFormatter(useMathText=True)
     cbar.formatter.set_powerlimits((0, 0))
     cbar.update_ticks()
@@ -749,10 +762,6 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     # Labeling and styling
     plt.xlabel('Lead Time (weeks)', fontsize=labelsize)
     plt.ylabel('Cost ($k)', fontsize=labelsize)
-    plt.xlim(time_limits[0], time_limits[1])
-    plt.ylim(cost_limits[0], cost_limits[1])
-    plt.xticks(ticks=time_ticks, fontsize=ticksize)
-    plt.yticks(ticks=cost_ticks, fontsize=ticksize)
     plt.gca().xaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{int(x)}'))
     plt.gca().yaxis.set_major_formatter(FuncFormatter(lambda y, _: f'{int(y)}'))
     plt.grid(True, linestyle='-', linewidth=1, color='black')
@@ -770,7 +779,6 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     plt.savefig(folder_name + '/monte_carlo_combined_pdf.svg', format='svg')
     if show_plots:
         plt.show()
-
 
 
 
@@ -927,7 +935,7 @@ def run_all_architecture_configurations(n_runs, move_folders=False, use_seeds=Tr
     #montecarlo_box_plots(cost_target=goal_data['cost_target'], lead_time_target=goal_data['lead_time_target'])
     
     
-def plot_from_csv(folder_name, lead_time_target, cost_target, risk_calc_settings):
+def plot_from_csv(folder_name, lead_time_target, cost_target):
     lead_times_df = pd.read_csv(folder_name + '/Lead_Time_Data_Baseline.csv')
     dev_costs_df = pd.read_csv(folder_name + '/Cost_Data_Baseline.csv')
     
@@ -935,16 +943,7 @@ def plot_from_csv(folder_name, lead_time_target, cost_target, risk_calc_settings
     dev_costs_thousands = dev_costs_df['Development Costs (thousands)'].values
 
     montecarlo_results_plots(lead_times_weeks, dev_costs_thousands, lead_time_target, cost_target, folder_name)
-    
-    risk_results = calculate_risk(lead_times_weeks, dev_costs_thousands, lead_time_target, cost_target, risk_calc_settings)
-    print('Development Risk:')
-    print(f'     Probability of Cost Overrun: {(risk_results['prob_cost_overrun']*100):.1f} %')
-    print(f'     Risk of Cost Overrun: ${risk_results['cost_risk']:.1f}k')
-    print(f'     Probability of Lead Time Overrun: {(risk_results['prob_lead_time_overrun']*100):.1f} %')
-    print(f'     Risk of Lead Time Overrun: ${risk_results['lead_time_risk']:.1f}k')
-    print(f'     Overall Risk: ${risk_results['combined_risk']:.1f}k')
-    
-    
+
 
 
 if __name__ == "__main__":
@@ -952,7 +951,7 @@ if __name__ == "__main__":
     mpl.rcParams['svg.fonttype'] = 'none'
     
     if True:
-        if False:
+        if True:
             run_all_architecture_configurations(
                 
                 n_runs=400, # 400
@@ -960,14 +959,14 @@ if __name__ == "__main__":
                 move_folders=True, 
                 skip_errors=True, 
                 create_samples=False, 
-                folder_extention='DOE1 - Accuracy'
+                folder_extention='DOE4 - Full 1' # DOE4 - Full 2, DOE4 - Full 3
             ) 
             
         else:
             warnings.filterwarnings("ignore")
             sim = MonteCarlo(
                 # Sim runs
-                max_sim_runs = 400,
+                max_sim_runs = 1500,
                 
                 # Stability
                 check_stability = False,
@@ -978,8 +977,8 @@ if __name__ == "__main__":
                 inital_seed=None,
                 use_seeds=True,
                 
-                architecture_config_name='DOE3-53', # Baseline
-                folder_extention='DOE3 - New Tool', # ''
+                architecture_config_name='Baseline', # Baseline
+                folder_extention='', # ''
                 
                 skip_errors=True
             )
@@ -987,13 +986,7 @@ if __name__ == "__main__":
             
     else:
         # plotting from csv
-        cost_target = 1600
-        lead_time_target = 130
-        risk_calc_settings = {
-            'cost_risk_factor': 2, # lost revenue ($k) per $k or $k^2 overrun
-            'cost_impact_type': 'quadratic',
-            'lead_time_risk_factor': 150, # lost revenue ($k) per week or week^2 overrun (depending on impact function)
-            'lead_time_impact_type': 'quadratic'
-        }
-        plot_from_csv('sim_runs/plots', cost_target=cost_target, lead_time_target=lead_time_target, risk_calc_settings=risk_calc_settings)
+        cost_target = 1500
+        lead_time_target = 110
+        plot_from_csv('sim_runs/plots', cost_target=cost_target, lead_time_target=lead_time_target)
         montecarlo_box_plots(cost_target=cost_target, lead_time_target=lead_time_target)

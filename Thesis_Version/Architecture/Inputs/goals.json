@@ -1,7 +1,7 @@
 {
     "overall_quality_goal": 0.9,
-    "cost_target": 1800,
-    "lead_time_target": 120,
+    "cost_target": 1400,
+    "lead_time_target": 104,
     "risk_calc_settings":
     {
         "cost_risk_factor": 0.01,

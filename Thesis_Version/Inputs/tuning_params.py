@@ -4,8 +4,9 @@ step_size = 0.1 # h
 
 
 ###### fast fine tuning of activity duration
-effort_factor = 1
+effort_factor = 0.85
 physical_effort_factor = 1
+physical_cost_red_factor = 0.8
 ######
 nominal_task_effort = 4 # h
 
@@ -29,7 +30,7 @@ penalty_for_outdated_info = 1
 
 # expertise, efficiency calculation
 scaling_factor_excess_knowledge = 0.2
-use_knowledge_weight = True
+use_knowledge_weight = False
 
 use_uncertainty_for_validation = False
 
@@ -52,7 +53,7 @@ collaboration_effort_average = (collaboration_effort_min + collaboration_effort_
 importance_reduction_factor_for_external_expert = 0.2 # lowers importance for experts that are not in own team
 
 # Rework
-feasibility_detection_rate_factor = 0.5 # reduces the detection rate of feasibility problems
+valididation_of_external_interfaces_factor = 0.6 # reduces the amount of external interface quality that can be checked during simulation and testing
 
 # Knowledge Base Latency
 knowledge_base_latency_min = 0.5 # h
@@ -64,7 +65,7 @@ assignment_time_min = 0.1 # h
 assignment_time_max = 0.5 # h
 
 # verification effort
-verification_effort_factor = 1.5 # percent of effort that is added for verification of information (systems engineers verifying interfaces)
+verification_effort_factor = 0.5 # percent of effort that is added for verification of information (systems engineers verifying interfaces)
 
 # information handling times (receiveing and sharing) --> Unit: h/h (effort for info handeling depends on how much info is received which depends on the amount of effort that was used to create it)
 info_handling_time_max = 0.3

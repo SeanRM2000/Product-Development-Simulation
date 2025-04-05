@@ -1,6 +1,8 @@
 import json
 from architecture_graph import ArchitectureGraph
 
+from Inputs.tuning_params import *
+
 class Tools:
     def __init__(self, architecture: ArchitectureGraph, folder=None):
         self.tool_list = {}
@@ -35,7 +37,10 @@ class Tools:
                     "architecture_elements": details["mapped_elements"],
                 }
                 for param_key, param_value in details["parameters"].items():
-                    self.tool_list[name][param_key] = param_value
+                    if param_key == "cost_per_hour":
+                        self.tool_list[name][param_key] = param_value * physical_cost_red_factor
+                    else:
+                        self.tool_list[name][param_key] = param_value
 
 
     def get_tools(self, architecture_element, activity):
