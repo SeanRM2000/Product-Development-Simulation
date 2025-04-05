@@ -3403,7 +3403,7 @@ class PDsim:
                             self.total_work_effort += step_size
                             self.activity_network.nodes[active_activity]['total_work_effort'] += step_size
                         
-                        # technical work / rework counter
+                        # technical work/rework counter
                         if self.task_network.nodes[tech_task]['activity_type'] not in {'Prototyping', 'Testing'}:
                             self.total_work_development_work += step_size
                             

@@ -42,7 +42,7 @@ plt.plot(x, f3, label=r'$IC=3$', linestyle='dotted', linewidth=1, color='black')
 
 # Set labels with font size 12
 plt.xlabel(r"Collaboration Effort $E_{collab}$", fontsize=12)
-plt.ylabel(r"New knowledge level $PK^{New}$", fontsize=12)
+plt.ylabel(r"New Knowledge Level $PK^{New}$", fontsize=12)
 
 # Set x and y axis limits to start at zero
 plt.xlim(0, 20)

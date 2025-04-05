@@ -97,7 +97,7 @@ class MonteCarlo():
             self.seeds = []
 
 
-    def run_montecarlo(self, show_plots=True, create_samples=False):
+    def run_montecarlo(self, show_plots=True, create_samples=False, disable_plots=False):
         stability = [float('inf')] * 4
         start_time = time.time()
         
@@ -180,7 +180,7 @@ class MonteCarlo():
             
 
             # after runs ask if continuation is wanted
-            if sim_runs_left == 0 and show_plots:
+            if sim_runs_left == 0 and show_plots and not disable_plots:
                 print('\nMax simulation runs reached.')
                 self.convergence_plot()
                 additional_runs = input('Add more runs? ')
@@ -206,7 +206,7 @@ class MonteCarlo():
             stability = None
             
                 
-        mean_lead_time_ymd = convert_hours_to_ymd(np.mean(self.lead_times))
+       
         
         lead_times_in_weeks = np.array(self.lead_times) / (7 * 24)
         costs_in_thousands = np.array(self.dev_costs) / 1000
@@ -223,7 +223,7 @@ class MonteCarlo():
         mean_consitency = np.mean(self.consitency)
         
         
-
+        mean_lead_time_ymd = convert_hours_to_ymd(np.mean(self.lead_times))
         #print('Results:')
         #print(f'     Mean Lead Time: {mean_lead_time:.1f} weeks ({mean_lead_time_ymd[0]} year(s), {mean_lead_time_ymd[1]} month(s), {mean_lead_time_ymd[2]} day(s))')
         #print(f'     Mean Development Cost: ${mean_cost:.1f}k')
@@ -243,9 +243,10 @@ class MonteCarlo():
         })
         df_combined.to_csv(self.save_folder + '/run_data.csv', index=False)
         
-        self.convergence_plot(stability=stability, show_plot=show_plots)
+        if not disable_plots:
+            self.convergence_plot(stability=stability, show_plot=show_plots)
         
-        montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, self.lead_time_target, self.cost_target, self.save_folder, show_plots=show_plots)
+            montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, self.lead_time_target, self.cost_target, self.save_folder, show_plots=show_plots)
         
         if self.architecture_config_name:
             self.save_statistical_data(costs_in_thousands,
@@ -274,8 +275,9 @@ class MonteCarlo():
             
         if self.use_seeds and create_samples:
             self.get_representative_samples(lead_times_in_weeks, costs_in_thousands, self.lead_time_target, self.cost_target)
-            
-        plt.close('all')
+        
+        if not disable_plots and show_plots:    
+            plt.close('all')
         
         return skipped_runs
 
@@ -627,18 +629,22 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     fig, axes = plt.subplots(1, 2, figsize=(6, 2.2))
     
 
-    # Lead time in weeks
-    lead_times_in_weeks = lead_times_in_weeks / 52.14 * 12
-    lead_time_target = lead_time_target / 52.14 * 12
     
-    counts, bins = np.histogram(lead_times_in_weeks, bins=nbins)
-    relative_probabilities = counts / len(lead_times_in_weeks)
+    # Lead time in months
+    mean_lead_time = np.mean(lead_times_in_weeks) / 52.14 * 12
+    lead_times = (lead_times_in_weeks / 52.14 * 12) / mean_lead_time
+    lead_time_target = (lead_time_target / 52.14 * 12) / mean_lead_time
+    
+    counts, bins = np.histogram(lead_times, bins=nbins)
+    relative_probabilities = counts / len(lead_times)
     axes[0].bar(bins[:-1], relative_probabilities, width=np.diff(bins), color='lightgray',edgecolor="black", align="edge", linewidth=0.7)
-    axes[0].set_xlabel('Lead Time (months)', fontsize=labelsize)
+    axes[0].set_xlabel('Normalized Lead Time', fontsize=labelsize)
     axes[0].set_ylabel('Relative Probability', fontsize=11)
-    axes[0].yaxis.set_major_formatter(FuncFormatter(one_decimals))
+    axes[0].yaxis.set_major_formatter(FuncFormatter(two_decimals))
     axes[0].xaxis.set_major_formatter(FuncFormatter(one_decimals))
     axes[0].tick_params(axis='both', which='major', labelsize=ticksize)
+    axes[0].text(0.98, 0.5, f'$\\mu={mean_lead_time:.1f}$ mo.', transform=axes[0].transAxes,
+        fontsize=10, va='center', ha='right')
 
     # CDF
     ax2 = axes[0].twinx()
@@ -675,17 +681,21 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
             color='black', ha='center', va='bottom', fontsize=ticksize)
 
 
-    # Cost in thousands
-    costs_in_thousands = costs_in_thousands / 1000
-    cost_target = cost_target / 1000
-    counts, bins = np.histogram(costs_in_thousands, bins=nbins) 
-    relative_probabilities = counts / len(costs_in_thousands)
+    # Cost in million
+    mean_cost = np.mean(costs_in_thousands) / 1000
+    costs = (costs_in_thousands / 1000) / mean_cost
+    cost_target = (cost_target / 1000) / mean_cost
+    counts, bins = np.histogram(costs, bins=nbins) 
+    relative_probabilities = counts / len(costs)
     axes[1].bar(bins[:-1], relative_probabilities, width=np.diff(bins), color='lightgray',edgecolor="black", align="edge", linewidth=0.7)
-    axes[1].set_xlabel('Cost ($m)', fontsize=labelsize)
+    axes[1].set_xlabel('Normalized Cost', fontsize=labelsize)
     axes[1].set_ylabel('Relative Probability', fontsize=11)
-    axes[1].yaxis.set_major_formatter(FuncFormatter(one_decimals))
-    axes[1].xaxis.set_major_formatter(FuncFormatter(two_decimals))
+    axes[1].yaxis.set_major_formatter(FuncFormatter(two_decimals))
+    axes[1].xaxis.set_major_formatter(FuncFormatter(one_decimals))
     axes[1].tick_params(axis='both', which='major', labelsize=ticksize)
+    axes[1].text(0.98, 0.5, f'$\\mu=\\${mean_cost:.1f}$m', transform=axes[1].transAxes,
+        fontsize=10, va='center', ha='right')
+
 
     # CDF
     ax2 = axes[1].twinx()
@@ -906,7 +916,7 @@ def run_all_architecture_configurations(n_runs, move_folders=False, use_seeds=Tr
             skip_errors=skip_errors,
             folder_extention=folder_extention
         )
-        result = sim.run_montecarlo(show_plots=False, create_samples=create_samples)
+        result = sim.run_montecarlo(show_plots=False, create_samples=create_samples, disable_plots=True)
         if result == 'skipped':
             configs_skipped.append(config)
         else:
@@ -936,11 +946,10 @@ def run_all_architecture_configurations(n_runs, move_folders=False, use_seeds=Tr
     
     
 def plot_from_csv(folder_name, lead_time_target, cost_target):
-    lead_times_df = pd.read_csv(folder_name + '/Lead_Time_Data_Baseline.csv')
-    dev_costs_df = pd.read_csv(folder_name + '/Cost_Data_Baseline.csv')
+    data = pd.read_csv(folder_name + '/run_data.csv')
     
-    lead_times_weeks = lead_times_df['Lead Times (weeks)'].values
-    dev_costs_thousands = dev_costs_df['Development Costs (thousands)'].values
+    lead_times_weeks = data['Lead Times (weeks)'].values
+    dev_costs_thousands = data['Development Costs (thousands)'].values
 
     montecarlo_results_plots(lead_times_weeks, dev_costs_thousands, lead_time_target, cost_target, folder_name)
 
@@ -949,9 +958,10 @@ def plot_from_csv(folder_name, lead_time_target, cost_target):
 if __name__ == "__main__":
     plt.rcParams["font.family"] = "Times New Roman"
     mpl.rcParams['svg.fonttype'] = 'none'
+    plt.rcParams["mathtext.fontset"] = "stix"
     
     if True:
-        if True:
+        if False:
             run_all_architecture_configurations(
                 
                 n_runs=400, # 400
@@ -959,7 +969,7 @@ if __name__ == "__main__":
                 move_folders=True, 
                 skip_errors=True, 
                 create_samples=False, 
-                folder_extention='DOE4 - Full 1' # DOE4 - Full 2, DOE4 - Full 3
+                folder_extention='DOE1-3 Combined'
             ) 
             
         else:
@@ -986,7 +996,6 @@ if __name__ == "__main__":
             
     else:
         # plotting from csv
-        cost_target = 1500
-        lead_time_target = 110
-        plot_from_csv('sim_runs/plots', cost_target=cost_target, lead_time_target=lead_time_target)
-        montecarlo_box_plots(cost_target=cost_target, lead_time_target=lead_time_target)
+        cost_target = 1400
+        lead_time_target = 104
+        plot_from_csv('Architecture/Outputs/Baseline', cost_target=cost_target, lead_time_target=lead_time_target)

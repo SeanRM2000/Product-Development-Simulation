@@ -1,3 +1,4 @@
 Name,DOE,Number,Mean Cost,Mean Lead Time,Mean Quality,Risk,Effectivness,Average Iterations,First Pass Yield,Rel Cost Physical,Work Efficency,Average Consitency
 DOE4-1,DOE4,1,1609.8,131.7,0.876,17975.1,0.253,10.1,0.055,0.641,0.362,0.544
 DOE4-10,DOE4,10,1890.9,165.6,0.826,84484.0,0.192,10.3,0.041,0.742,0.48,0.623
+Baseline,Baseline,,1433.2,111.7,0.805,9031.0,0.257,7.5,0.049,0.725,0.498,0.661
