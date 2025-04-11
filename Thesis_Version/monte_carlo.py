@@ -29,9 +29,11 @@ from Inputs.tuning_params import *
 class MonteCarlo():
     def __init__(self, max_sim_runs, 
                  check_stability=False, stability_criteria=0.05, stability_interval=100, # stability
-                 inital_seed=None, use_seeds=False, # monte carlo repeatability and trackability
+                 inital_seed=None, use_seeds=False, save_seeds=False, # monte carlo repeatability and trackability
                  architecture_config_name=None, # provid if simulation is run based on architecture model inputs
                  skip_errors=False,
+                 max_skips=20,
+                 time_out_time=30,
                  folder_extention=''
                  ):
         
@@ -41,6 +43,8 @@ class MonteCarlo():
         self.stability_criteria = stability_criteria
         self.stability_interval =  stability_interval
         self.skip_errors=skip_errors
+        self.time_out_time=time_out_time
+        self.max_skips = max_skips
         
         # targets
         file_path = ('Architecture/Inputs/goals.json') if architecture_config_name else 'Inputs/test_data/test_goals.json'
@@ -90,6 +94,7 @@ class MonteCarlo():
         
         
         self.use_seeds = use_seeds
+        self.save_seeds = save_seeds
         if inital_seed and self.use_seeds:
             random.seed(inital_seed)
         
@@ -112,13 +117,10 @@ class MonteCarlo():
             
             if self.use_seeds:
                 seed = random.randint(0, 2**32 - 1)
-                random.seed(seed)
-                np.random.seed(seed)
-                self.seeds.append(seed)
             
             # simulation
-            sim = PDsim(overall_quality_goal=self.overall_quality_goal, montecarlo=True, folder=self.load_folder)
-            try: 
+            sim = PDsim(overall_quality_goal=self.overall_quality_goal, montecarlo=True, folder=self.load_folder, timeout=self.time_out_time, random_seed=seed)
+            try:
                 results = sim.sim_run()
             
             # error handeling
@@ -135,8 +137,8 @@ class MonteCarlo():
                     sim_runs_left += 1
                     total_sim_runs += 1
                     
-                    if skipped_runs > 20:
-                        print('\nMonte Carlo was stopped due to too many errors.\n')
+                    if self.max_skips and skipped_runs > self.max_skips:
+                        print(f'\nMonte Carlo was stopped due to too many errors {self.max_skips}.\n')
                         return 'skipped'
                     else:
                         continue
@@ -147,6 +149,7 @@ class MonteCarlo():
                         raise RuntimeError(f'{self.architecture_config_name + ': ' if self.architecture_config_name else ''}Simulation run failed. Error: {error}')
             
             # collect data
+            self.seeds.append(seed)
             self.dev_costs.append(results[0])
             self.lead_times.append(results[1])
             self.final_quality.append(results[2])
@@ -231,17 +234,22 @@ class MonteCarlo():
 
         
         # save data points for single runs
-        df_combined = pd.DataFrame({
+        data = {
             'Development Costs (thousands)': costs_in_thousands,
             'Lead Times (weeks)': lead_times_in_weeks,
+            'Quality': self.final_quality,
             'Effectivness': self.effectivness,
             'Average Iterations': self.average_iterations,
             'First Pass Yield': self.fp_yield,
             '% Cost from physical Prot. / Test': self.cost_from_physical,
             'Work Efficency': self.work_efficiency,
             'Average Consitency': self.consitency
-        })
-        df_combined.to_csv(self.save_folder + '/run_data.csv', index=False)
+        }
+        if self.save_seeds:
+            data['Seeds'] = self.seeds
+            
+        df_data = pd.DataFrame(data)
+        df_data.to_csv(self.save_folder + '/run_data.csv', index=False)
         
         if not disable_plots:
             self.convergence_plot(stability=stability, show_plot=show_plots)
@@ -274,7 +282,7 @@ class MonteCarlo():
                                          )
             
         if self.use_seeds and create_samples:
-            self.get_representative_samples(lead_times_in_weeks, costs_in_thousands, self.lead_time_target, self.cost_target)
+            get_representative_sample(lead_times_in_weeks, costs_in_thousands,  self.seeds, self.max_sim_runs, self.overall_quality_goal, load_folder=self.load_folder)
         
         if not disable_plots and show_plots:    
             plt.close('all')
@@ -344,43 +352,7 @@ class MonteCarlo():
         #plt.savefig(self.save_folder + '/convergence_relative.png')
         if show_plot:
             plt.show()
-            
 
-    def get_representative_samples(self, lead_times_in_weeks, costs_in_thousands, lead_time_target, cost_target):
-        print('Generating Most Likely, Worst Case, and Best Case...')
-        
-        mean_lead_time = np.mean(lead_times_in_weeks)
-        mean_dev_cost = np.mean(costs_in_thousands)
-
-        most_likely_seed = None
-        best_case_seed = None
-        worst_case_seed = None
-        risks = []
-        distances = []
-        
-        for lead_time, dev_cost in zip(lead_times_in_weeks, costs_in_thousands):
-            distance = np.sqrt(((lead_time - mean_lead_time) / mean_lead_time) ** 2 +
-                               ((dev_cost - mean_dev_cost) / mean_dev_cost) ** 2)
-            distances.append(distance)
-            
-            risk = calculate_risk([lead_time], [dev_cost], lead_time_target,cost_target, self.risk_calc_settings)
-            risks.append(risk)
-        
-        
-        most_likely_seed = self.seeds[np.argmin(distances)]
-        print(f'\nMost Likely Case Seed: {most_likely_seed}')
-        sim = PDsim(folder=self.load_folder, file_name_extention=f'MostLikely_with_{most_likely_seed}', random_seed=most_likely_seed)
-        sim.sim_run()
-        
-        best_case_seed = self.seeds[np.argmin(risks)]
-        print(f'\nBest Case Seed: {best_case_seed}')
-        sim = PDsim(folder=self.load_folder, file_name_extention=f'Best_with_{best_case_seed}', random_seed=best_case_seed)
-        sim.sim_run()
-        
-        worst_case_seed = self.seeds[np.argmax(risks)]
-        print(f'\nWorst Case Seed: {worst_case_seed}')
-        sim = PDsim(folder=self.load_folder, file_name_extention=f'Worst_with_{worst_case_seed}', random_seed=worst_case_seed)
-        sim.sim_run()
         
 
     def save_statistical_data(self,
@@ -554,6 +526,40 @@ class MonteCarlo():
         df.to_csv(results_file, index=False)
 
 
+
+def get_representative_sample(lead_times_in_weeks, costs_in_thousands, seeds, runs, quality_goal, load_folder=None):
+    print('Generating Most Likely Case:')
+    
+    def kde_mode(data):
+        kde = gaussian_kde(data)
+        x = np.linspace(min(data), max(data), runs)
+        y = kde(x)
+        mode_estimate = x[np.argmax(y)]
+        return mode_estimate
+    
+    mode_lead_time = kde_mode(lead_times_in_weeks)
+    mode_dev_cost = kde_mode(costs_in_thousands)
+    
+    print(f'Mode of Lead Time: {mode_lead_time}')
+    print(f'Mode of Cost: {mode_dev_cost}')
+    
+    most_likely_seed = None
+    distances = []
+    
+    for lead_time, dev_cost in zip(lead_times_in_weeks, costs_in_thousands):
+        distance = np.sqrt(((lead_time - mode_lead_time) / mode_lead_time) ** 2 +
+                            ((dev_cost - mode_dev_cost) / mode_dev_cost) ** 2)
+        distances.append(distance)
+
+    most_likely_seed = seeds[np.argmin(distances)]
+    
+    if load_folder:
+        sim = PDsim(overall_quality_goal=quality_goal, folder=load_folder, file_name_extention=f'MostLikely', random_seed=most_likely_seed, print_status=False)
+        sim.sim_run()
+    else:
+        print(f'Most Likely Seed: {most_likely_seed}')
+
+
 def calculate_risk(lead_times, costs, lead_time_target, cost_target, risk_calc_settings):
     
     def impact(overrun, risk_factor_factor, impact_type):
@@ -639,7 +645,7 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     relative_probabilities = counts / len(lead_times)
     axes[0].bar(bins[:-1], relative_probabilities, width=np.diff(bins), color='lightgray',edgecolor="black", align="edge", linewidth=0.7)
     axes[0].set_xlabel('Normalized Lead Time', fontsize=labelsize)
-    axes[0].set_ylabel('Relative Probability', fontsize=11)
+    axes[0].set_ylabel('Relative Frequency', fontsize=11)
     axes[0].yaxis.set_major_formatter(FuncFormatter(two_decimals))
     axes[0].xaxis.set_major_formatter(FuncFormatter(one_decimals))
     axes[0].tick_params(axis='both', which='major', labelsize=ticksize)
@@ -655,7 +661,8 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     bin_centers = np.insert(bin_centers, 0, bins[0])
     bin_centers = np.append(bin_centers, bins[-1])
     ax2.plot(bin_centers, cdf, color='black', linewidth=1.0) # black
-    ax2.set_ylabel('Cumulative Probability', fontsize=11) # black
+    #ax2.ecdf(lead_times, color='black', linewidth=1.0)
+    ax2.set_ylabel('Cumulative Frequency', fontsize=11) # black
     ax2.tick_params(axis='both', which='major', labelsize=ticksize)
 
     # ticks and grid
@@ -664,7 +671,7 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     time_ticks = np.linspace(time_limits[0], time_limits[1], 5)
     axes[0].set_xlim(time_limits[0], time_limits[1])
     cdf_ticks = [0, 0.2, 0.4, 0.6, 0.8, 1.0]
-    primary_ticks = [0, 0.05, 0.1, 0.15, 0.2, 0.25]
+    primary_ticks = [0, 0.05, 0.1, 0.15, 0.2]
     ax2.set_ylim(0, 1)
     ax2.set_yticks(cdf_ticks)
     if max(relative_probabilities) > primary_ticks[-1]:
@@ -689,7 +696,7 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     relative_probabilities = counts / len(costs)
     axes[1].bar(bins[:-1], relative_probabilities, width=np.diff(bins), color='lightgray',edgecolor="black", align="edge", linewidth=0.7)
     axes[1].set_xlabel('Normalized Cost', fontsize=labelsize)
-    axes[1].set_ylabel('Relative Probability', fontsize=11)
+    axes[1].set_ylabel('Relative Frequency', fontsize=11)
     axes[1].yaxis.set_major_formatter(FuncFormatter(two_decimals))
     axes[1].xaxis.set_major_formatter(FuncFormatter(one_decimals))
     axes[1].tick_params(axis='both', which='major', labelsize=ticksize)
@@ -706,7 +713,8 @@ def montecarlo_results_plots(lead_times_in_weeks, costs_in_thousands, lead_time_
     bin_centers = np.insert(bin_centers, 0, bins[0])
     bin_centers = np.append(bin_centers, bins[-1])
     ax2.plot(bin_centers, cdf, color='black', linewidth=1.0) # black
-    ax2.set_ylabel('Cumulative Probability', fontsize=11) # black
+    #ax2.ecdf(costs, color='black', linewidth=1.0)
+    ax2.set_ylabel('Cumulative Frequency', fontsize=11) # black
     ax2.tick_params(axis='both', which='major', labelsize=ticksize)
 
     # limits, ticks, and grid
@@ -919,11 +927,13 @@ def run_all_architecture_configurations(n_runs, move_folders=False, use_seeds=Tr
         result = sim.run_montecarlo(show_plots=False, create_samples=create_samples, disable_plots=True)
         if result == 'skipped':
             configs_skipped.append(config)
+            skipped = True
         else:
+            skipped = False
             n_total_errors += result
         
         # move folder
-        if move_folders:
+        if move_folders and not skipped:
             destination = 'Architecture/Inputs/' + folder_extention + '/completed'
             if not os.path.exists(destination):
                 os.makedirs(destination)
@@ -948,11 +958,20 @@ def run_all_architecture_configurations(n_runs, move_folders=False, use_seeds=Tr
 def plot_from_csv(folder_name, lead_time_target, cost_target):
     data = pd.read_csv(folder_name + '/run_data.csv')
     
+
+    with open('Architecture/Inputs/goals.json', 'r') as file:
+        goal_data = json.load(file)
+
+    risk_calc_settings = goal_data['risk_calc_settings']
+    quality_goal = goal_data['overall_quality_goal']
+    
     lead_times_weeks = data['Lead Times (weeks)'].values
     dev_costs_thousands = data['Development Costs (thousands)'].values
+    seeds = data['Seeds'].values
 
     montecarlo_results_plots(lead_times_weeks, dev_costs_thousands, lead_time_target, cost_target, folder_name)
-
+    print(f'Risk: {calculate_risk(lead_times_weeks, dev_costs_thousands, lead_time_target, cost_target, risk_calc_settings)['combined_risk']}')
+    get_representative_sample(lead_times_weeks, dev_costs_thousands, seeds, len(lead_times_weeks), quality_goal)
 
 
 if __name__ == "__main__":
@@ -960,7 +979,7 @@ if __name__ == "__main__":
     mpl.rcParams['svg.fonttype'] = 'none'
     plt.rcParams["mathtext.fontset"] = "stix"
     
-    if True:
+    if False:
         if True:
             run_all_architecture_configurations(
                 
@@ -969,14 +988,14 @@ if __name__ == "__main__":
                 move_folders=True, 
                 skip_errors=True, 
                 create_samples=False, 
-                folder_extention='DOE1-3 Combined'
+                folder_extention='DOE3 - Low Interop'
             ) 
             
         else:
             warnings.filterwarnings("ignore")
             sim = MonteCarlo(
                 # Sim runs
-                max_sim_runs = 1500,
+                max_sim_runs = 6,
                 
                 # Stability
                 check_stability = False,
@@ -986,16 +1005,19 @@ if __name__ == "__main__":
                 # Seeding
                 inital_seed=None,
                 use_seeds=True,
+                save_seeds=True,
                 
                 architecture_config_name='Baseline', # Baseline
                 folder_extention='', # ''
                 
-                skip_errors=True
+                skip_errors=True,
+                max_skips=None,
+                time_out_time=50
             )
-            sim.run_montecarlo(create_samples=False, show_plots=False)
+            sim.run_montecarlo(create_samples=True, show_plots=False)
             
     else:
         # plotting from csv
         cost_target = 1400
         lead_time_target = 104
-        plot_from_csv('Architecture/Outputs/Baseline', cost_target=cost_target, lead_time_target=lead_time_target)
+        plot_from_csv('Architecture/Outputs/Baseline', cost_target=cost_target, lead_time_target=lead_time_target) 

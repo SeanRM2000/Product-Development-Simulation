@@ -5,21 +5,20 @@ from scipy.integrate import quad
 import math
 
 # Define parameters
-alpha = 0.03
-scale = 60
-time = np.linspace(0, 15, 1000)  # Time range
+alpha = 0.01
+scale = 57
+time = np.linspace(0, 25, 1000)  # Time range
 
 # Norden's Effort Model
 nordens_effort = 2 * scale * (alpha * time * np.exp(-alpha * time**2))
 
 
-alpha2 = 0.3
-scale2 = 60
+alpha2 = 0.15
 
 # Compute total effort for original Exponential Model (before scaling)
-exp_distribution = scale2 * alpha2 * np.exp(-alpha2 * time)
+exp_distribution = scale * alpha2 * np.exp(-alpha2 * time)
 
-x_ticks = np.linspace(0, 15, 4)  # Evenly spaced between min and max
+x_ticks = np.linspace(0, 25, 4)  # Evenly spaced between min and max
 y_max = math.ceil(max(max(nordens_effort), max(exp_distribution)) * 1.05)
 y_ticks = np.linspace(0, 20, 5)
 
@@ -39,7 +38,7 @@ plt.xlabel("Time (months)", fontsize=12)
 plt.ylabel("Effort (person-months)", fontsize=12)
 
 # Set x and y axis limits to start at zero
-plt.xlim(0, 15)
+plt.xlim(0, 25)
 plt.ylim(0, 20)  # Adjust slightly above max for visibility
 
 # Customize ticks font size

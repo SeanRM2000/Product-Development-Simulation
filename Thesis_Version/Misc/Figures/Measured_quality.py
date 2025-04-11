@@ -28,7 +28,7 @@ y_max = 1
 y_ticks = np.linspace(0, 1, 6)
 
 # Plot with specified customizations
-plt.figure(figsize=(3, 2.9)) ## 6 inches is page width 4, 2.2
+plt.figure(figsize=(3, 2.8)) ## 6 inches is page width 4, 2.2
 
 # Use Times New Roman for font (fallback if not available)
 #mpl.rcParams['text.usetex'] = True

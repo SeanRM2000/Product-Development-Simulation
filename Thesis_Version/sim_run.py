@@ -11,6 +11,7 @@ import warnings
 import pdb
 from scipy.ndimage import uniform_filter1d
 import matplotlib as mpl
+from sklearn.metrics import mean_squared_error
 
 # Classes
 from architecture_graph import ArchitectureGraph
@@ -34,7 +35,7 @@ class PDsim:
                  file_name_extention:str=None,
                  debug=False, debug_interval:int=100, debug_stop:int=None,
                  timeout=30,
-                 enable_timeout = True,
+                 enable_timeout=True,
                  montecarlo=False, 
                  log_events=False, slow_logs=False,
                  print_status=True,
@@ -71,20 +72,17 @@ class PDsim:
             self.debug = debug
             self.debug_interval = debug_interval
             self.debug_stop = debug_stop
-            
-            # random seed
-            if random_seed:
-                random.seed(random_seed)
-                np.random.seed(random_seed)
         
         else:
             self.log_events = False
-            random_seed = None
-                
 
+        # random seed
+        if random_seed:
+            random.seed(random_seed)
+            np.random.seed(random_seed)
                 
         # Consitency checks of architecture and organization
-        if not self.montecarlo:
+        if not self.montecarlo and self.print_status:
             help_fnc.consitency_check(folder)
         
         
@@ -152,6 +150,11 @@ class PDsim:
         self.total_development_work_effort = 0
         
         self.effort_breakdown = {}
+        self.effort_breakdown_phases = {
+            'Overall': [0],
+            'Development': [0],
+            'Testing': [0]
+        }
         self.effort_backlog_agents = {}
         self.personnel_tracker = {}
         self.active_agents = {}
@@ -171,7 +174,7 @@ class PDsim:
         self.overall_consitency = None
             
 
-        if not self.montecarlo:
+        if not self.montecarlo and self.print_status:
             self.init_time = time.time() - self.init_start_time
             
             print('Initialization done!')
@@ -2458,6 +2461,9 @@ class PDsim:
     def complete_collaboration(self, agent, task_info):
         resp_agent = task_info.get('resp_agent', None)
         
+        ##### interface collaboration caused by systems engineer should also be with the systems engineer
+        ### technically both designers should improve their knowledge
+        
         # do nothing if the responsible agent task finishes
         if not resp_agent:
             return
@@ -3344,6 +3350,9 @@ class PDsim:
         total_cost = self.cost_tracker[-1]
         total_cost_with_idle =  self.cost_tracker_with_idle[-1]
         
+        for phase in self.effort_breakdown_phases:
+            self.effort_breakdown_phases[phase].append(0.0)
+        
         #check the activities of every agent
         active_technical_tasks = set()
         active_activities = set()
@@ -3352,7 +3361,7 @@ class PDsim:
                 data = self.org_network.get_agent(agent)
                 
                 self.active_agents[agent].append(0.0)
-                
+                                
                 # effort and cost tracker
                 self.personnel_tracker[agent].append(data['state'])
                 if data['state'] != 'Noise': # noise not relevant for the cost and effort of a project
@@ -3368,6 +3377,7 @@ class PDsim:
                     if data['state'] not in {'Idle', 'Waiting'}:
                         tech_task = data['technical_task']
                         active_activity = self.task_network.nodes[tech_task]['activity_name']
+                        
                         
                         if self.task_network.nodes[tech_task]['activity_type'] in {'Prototyping', 'Testing'}:
                             cost *= physical_cost_red_factor
@@ -3418,6 +3428,13 @@ class PDsim:
                                 self.total_technical_work_effort += step_size
 
                         self.active_agents[agent][-1] = 1.0
+                        
+                        self.effort_breakdown_phases['Overall'][-1] += 1.0
+                        if self.task_network.nodes[tech_task]['activity_type'] in {'Prototyping', 'Testing'}:
+                            self.effort_breakdown_phases['Testing'][-1] += 1.0
+                        else:
+                            self.effort_breakdown_phases['Development'][-1] += 1.0
+
                         
                         # cost breakdown
                         self.activity_network.nodes[active_activity]['cost'] += cost
@@ -3635,7 +3652,7 @@ class PDsim:
             if not use_moving_average:
                 return data
             window_size = int(moving_average_plots / step_size)
-            smoothed_data = uniform_filter1d(data, size=window_size, mode='nearest')
+            smoothed_data = uniform_filter1d(data, size=window_size, mode='constant')
             return smoothed_data
         
         # Convert time to weeks
@@ -3646,7 +3663,7 @@ class PDsim:
             abbreviations = {
                 'Drone': 'Drn',
                 'Air Frame': 'Airfr',
-                'Propulsion System': 'Prop',
+                'Propulsion System': 'PropS',
                 'Flight Control System': 'FCS',
                 'Main Body': 'Body',
                 'Landing Gear': 'LG',
@@ -3662,8 +3679,8 @@ class PDsim:
                 'System_Design': 'SysD',
                 'Design': 'Dsgn',
                 'LF_System_Simulation': 'LFSim',
-                'Component_Simulation': 'CompSim',
-                'Virtual_Integration': 'VirtInt',
+                'Component_Simulation': 'CSim',
+                'Virtual_Integration': 'VInt',
                 'HF_System_Simulation': 'HFSim',
                 'Prototyping': 'Proto',
                 'Testing': 'Test',
@@ -3685,7 +3702,7 @@ class PDsim:
         y_positions = list(range(len(sorted_activities)))
 
         # Create a new figure
-        fig, ax = plt.subplots(figsize=(7.5, 4))
+        fig, ax = plt.subplots(figsize=(6, 3.5))
 
         for idx, (activity, _) in enumerate(sorted_activities):
             states = self.gantt_tracker[activity]
@@ -3722,9 +3739,9 @@ class PDsim:
         for idx, (label, tick) in enumerate(zip(ax.get_yticklabels(), ax.yaxis.get_major_ticks())):
             if idx % 2 != 0:
                 # Shift odd labels and extend tick length
-                label.set_x(-0.18)      # Shift label to the left
+                label.set_x(-0.14)      # Shift label to the left
                 tick.tick1line.set_visible(True)
-                tick.tick1line.set_markersize(72)  # Extend tick length for odd labels
+                tick.tick1line.set_markersize(50)  # Extend tick length for odd labels
                 tick.tick2line.set_visible(False)
 
         
@@ -3741,65 +3758,100 @@ class PDsim:
         plt.clf()
         plt.close()
         
-        fig, ax1 = plt.subplots(figsize=(7.5, 2.2))
+        
+        
+        fig, ax1 = plt.subplots(figsize=(6, 2.5))
 
-        # Overall Backlog
-        overall_backlog = moving_average(effort_backlog['Overall'])
-        ax1.plot(time_in_weeks, overall_backlog, linestyle='--', color='darkorange', label='Overall Backlog', linewidth=1)
+
+        time_months = time_in_weeks / 52.14 * 12
+        
+        linestyles = ['solid', 'dashed', 'dotted']
+        for i, (phase, data) in enumerate(self.effort_breakdown_phases.items()):
+            averaged_data = moving_average(data)
+            if phase == 'Overall':
+                width = 1.5
+            else:
+                width = 1
+            ax1.plot(time_months, averaged_data, label=phase, linestyle=linestyles[i], color='black', linewidth=width)
 
         # Calculate x-axis limits
         x_min = 0
-        x_max = max(time_in_weeks)
+        x_max = max(time_months)
         ax1.set_xlim(x_min, x_max)
 
-        # Calculate y-axis limits for ax1 (Backlog)
-        backlog_min = 0
-        backlog_max = math.ceil(max(overall_backlog) / 10) * 10
-        ax1.set_ylim(backlog_min, backlog_max)
-        ax1.set_ylabel('Effort Backlog (h)', color='darkorange', fontsize=12, fontweight='bold')
-        ax1.tick_params(axis='y', labelsize=10)
-        ax1.set_xlabel('Time (weeks)', labelpad=0, fontsize=12)
-        ax1.grid(True, which='both', linestyle='--', linewidth=0.5)
-
-        # Define custom ticks for ax1
-        backlog_ticks = np.arange(backlog_min, backlog_max + 5, backlog_max / 5)
-        ax1.set_yticks(backlog_ticks)
-
-        # Secondary axis (Resource Utilization)
-        ax2 = ax1.twinx()
-
-        overall_utilization = moving_average(util_over_time['Overall'] * 100)
-        ax2.plot(time_in_weeks, overall_utilization, linestyle='--', color='royalblue', label='Overall Utilization', linewidth=1)
-
-        # Calculate y-axis limits for ax2 (Utilization)
-        ax2.set_ylim(0, 100)
-        ax2.set_ylabel('Resource Utilization (%)', color='royalblue', fontsize=12, fontweight='bold')
-        ax2.tick_params(axis='y', labelsize=10)
-
-        # Align ticks on both axes
-        aligned_util_ticks = np.arange(0, 100 + 10, 20)
-        ax2.set_yticks(aligned_util_ticks)
-
-        specific_entry = 'System Team'
-
-        # Add specific entry plots
-        ax1.plot(
-            time_in_weeks,
-            moving_average(effort_backlog[specific_entry]),
-            color='darkorange',
-            label=f'{specific_entry} Backlog', 
-            linewidth=1
-        )
-        ax2.plot(
-            time_in_weeks,
-            moving_average(util_over_time[specific_entry] * 100),
-            color='royalblue',
-            label=f'{specific_entry} Utilization', 
-            linewidth=1
-        )
+        ax1.set_ylim(0)
+        ax1.set_ylabel('Applied Effort (person-months)', fontsize=12)
+        ax1.tick_params(labelsize=11)
+        ax1.set_xlabel('Time (months)', fontsize=12)
+        ax1.grid(False)
+        ax1.legend(fontsize=12, frameon=False)
+        
         fig.tight_layout(pad=0)
         # Save the plot
-        plt.savefig(self.save_folder + '/Effort_Util.svg', format='svg')
+        plt.savefig(self.save_folder + '/Applied_Effort.svg', format='svg')
+        
+        plt.clf()
+        plt.close()
+        
+        
+        
+        ### comparison to norden
+        fig, ax1 = plt.subplots(figsize=(6, 2.5))
+
+        time_months = time_in_weeks / 52.14 * 12
+        
+        linestyles = ['solid', 'dashed', 'dotted']
+        
+        developed_framework = moving_average(self.effort_breakdown_phases['Overall'])
+        
+        alpha = 0.01
+        alpha2 = 0.15
+        scale = 57.23
+        
+        exp_distribution = scale * alpha2 * np.exp(-alpha2 * time_months)
+        nordens_effort = 2 * scale * (alpha * time_months * np.exp(-alpha * time_months**2))
+        
+
+        
+        ax1.plot(time_months, developed_framework, label=f'Developed Framework', linestyle='solid', color='black', linewidth=1.5)
+        ax1.plot(time_months, exp_distribution, label=f'Baseline Model', linestyle='dashed', color='black', linewidth=1)
+        
+        ax1.plot(time_months, nordens_effort, label='Norden\'s Effort Model', linestyle='dotted', color='black', linewidth=1)
+        
+        mse_developed = mean_squared_error(nordens_effort, developed_framework) 
+        nmse_developed = mse_developed / np.mean(nordens_effort**2)
+        nrmse_developed = math.sqrt(mse_developed) / np.mean(nordens_effort)
+
+        mse_baseline = mean_squared_error(nordens_effort, exp_distribution) 
+        nmse_baseline = mse_baseline / np.mean(nordens_effort**2)
+        nrmse_baseline = math.sqrt(mse_baseline) / np.mean(nordens_effort)
+        
+
+        print(f"MSE (Developed Framework vs Norden): {mse_developed:.4f}")
+        print(f"MSE (Baseline Model vs Norden): {mse_baseline:.4f}")
+        
+        print(f"\nNMSE (Developed Framework vs Norden): {nmse_developed:.4f}")
+        print(f"NMSE (Baseline Model vs Norden): {nmse_baseline:.4f}")
+        
+        print(f"\nNRMSE (Developed Framework vs Norden): {nrmse_developed:.4f}")
+        print(f"NRMSE (Baseline Model vs Norden): {nrmse_baseline:.4f}")
+        
+        
+        # Calculate x-axis limits
+        x_min = 0
+        x_max = max(time_months)
+        ax1.set_xlim(x_min, x_max)
+
+        ax1.set_ylim(0)
+        ax1.set_ylabel('Applied Effort (person-months)', fontsize=12)
+        ax1.tick_params(labelsize=11)
+        ax1.set_xlabel('Time (months)', fontsize=12)
+        ax1.grid(False)
+        ax1.legend(fontsize=12, frameon=False)
+        
+        fig.tight_layout(pad=0)
+        # Save the plot
+        plt.savefig(self.save_folder + '/Applied_Effort_Comp.svg', format='svg')
         
         plt.clf()
         plt.close()
@@ -3808,9 +3860,24 @@ class PDsim:
         ########################################################################################################################################################################
 
         # Create a figure with GridSpec for custom layout
-        fig = plt.figure(figsize=(18, 16))
+        fig = plt.figure(figsize=(18, 11))
         gs = fig.add_gridspec(3, 2, height_ratios=[1, 1, 1])
-        plt.subplots_adjust(top=2, bottom=1.9, hspace=0.3)
+        #plt.subplots_adjust(top=2, bottom=, hspace=0.1)
+        
+        colors = plt.get_cmap('tab10').colors
+        color_map = {
+            'Design': colors[0],
+            'Electronics': colors[1],
+            'Testing': colors[2],
+            'System': colors[3],
+            'Collaboration': colors[4],
+            'Waiting': colors[5],
+            'Technical Work': colors[6],
+            'Information Handling': colors[7],
+            'Development': colors[8],
+            'Virtual Validation': colors[9],
+            'Physical Validation': (0.0, 0.5, 0.5)
+        }
         
         
         # Gantt Chart
@@ -3821,7 +3888,7 @@ class PDsim:
 
         # Sort activities based on their start index
         sorted_activities = sorted(activity_starts, key=lambda x: x[1])
-        y_labels = [activity for activity, _ in sorted_activities]
+        y_labels = [abbreviate_activity(activity) for activity, _ in sorted_activities]
         y_positions = list(range(len(sorted_activities)))
         
         for idx, (activity, _) in enumerate(sorted_activities):
@@ -3829,9 +3896,9 @@ class PDsim:
 
             for i, (state, timestamp) in enumerate(states):
                 if state in {"In Progress", "Reworking", "Paused"}:
-                    start_time = timestamp / (7 * 24)
+                    start_time = timestamp / (7 * 24 * 52.14) * 12
                     try:
-                        end_time = states[i+1][1] / (7 * 24)
+                        end_time = states[i+1][1] / (7 * 24 * 52.14) * 12
                     except:
                         warnings.warn(f'Error with Gantt Tracker for {activity}')
                         end_time = time_in_weeks[-1]
@@ -3846,12 +3913,13 @@ class PDsim:
                     ax1.barh(idx, end_time - start_time, left=start_time, height=0.4, color=color)
                     
         ax1.set_yticks(y_positions)
-        ax1.set_yticklabels(y_labels, fontsize=8)
+        ax1.set_yticklabels(y_labels, fontsize=7.5)
         ax1.invert_yaxis()
         ax1.grid(axis='x', linestyle='--', alpha=0.7)
-        ax1.set_title('Gantt Chart of Activities')
-        ax1.set_xlabel('Time (weeks)', labelpad=0)
-        ax1.set_ylabel('Activities')
+        ax1.set_title('Gantt Chart of Activities', fontsize=14)
+        ax1.set_xlabel('Time (months)', labelpad=0, fontsize=12)
+        ax1.set_ylabel('Activities', fontsize=12)
+        ax1.set_ylim(len(sorted_activities) - 0.5, -0.5)
         # legend
         in_progress_patch = mpatches.Patch(color='blue', label='Work')
         reworking_patch = mpatches.Patch(color='red', label='Rework')
@@ -3859,7 +3927,12 @@ class PDsim:
         ax1.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right', frameon=False)
 
 
-
+        short_names = {
+            'System Team': 'System',
+            'Design Team': 'Design',
+            'Electronics Team': 'Electronics',
+            'Prototyping and Testing Team': 'Testing'
+        }
         
         # Effort Backlog
         if plot_applied_effort:
@@ -3877,8 +3950,8 @@ class PDsim:
                 else:
                     ax2.plot(time_in_weeks, moving_average(effort_data), label=label)
                     
-            ax2.set_ylabel('Applied Effort (person-weeks)')
-            ax2.set_xlabel('Time (weeks)', labelpad=0)
+            ax2.set_ylabel('Applied Effort (person-weeks)', fontsize=12)
+            ax2.set_xlabel('Time (weeks)', labelpad=0, fontsize=12)
             ax2.grid(True)
             ax2.set_xlim(left=0)
             ax2.set_ylim(bottom=0)
@@ -3904,17 +3977,18 @@ class PDsim:
                         effort_data[i] = value / active_agents
                 
                 if entry == 'Overall':
-                    ax2.plot(time_in_weeks, moving_average(effort_data), linestyle='--', color='dimgray', label=label)
+                    ax2.plot(time_in_weeks / 52.14 * 12, moving_average(effort_data), linestyle='--', color='dimgray', label=label)
                 else:
-                    ax2.plot(time_in_weeks, moving_average(effort_data), label=label)
+                    ax2.plot(time_in_weeks / 52.14 * 12, moving_average(effort_data), label=short_names[label], color=color_map[short_names[label]])
                     
-            ax2.set_ylabel('Effort Backlog (h)')
-            ax2.set_xlabel('Time (weeks)', labelpad=0)
-            ax2.grid(True)
+            ax2.set_ylabel('Effort Backlog (h)', fontsize=12)
+            ax2.set_xlabel('Time (months)', labelpad=0, fontsize=12)
+            ax2.legend(fontsize=11, frameon=False, ncols=5)
+            ax2.grid(False)
             ax2.set_xlim(left=0)
             ax2.set_ylim(bottom=0)
             moving_avrg_string = f'moving average: {round(moving_average_plots / 24, 1)} days'
-            ax2.set_title(f'Effort Backlog over Time ({moving_avrg_string})')
+            ax2.set_title(f'Effort Backlog by Teams', fontsize=14)# over Time ({moving_avrg_string})')
 
 
 
@@ -3929,19 +4003,19 @@ class PDsim:
                 continue
             
             if entry == 'Overall':
-                ax3.plot(time_in_weeks, moving_average(util_data * 100), linestyle='--', color='dimgray', label=label)
+                ax3.plot(time_in_weeks / 52.14 * 12, moving_average(util_data * 100), linestyle='--', color='dimgray', label=label)
             else:    
-                ax3.plot(time_in_weeks, moving_average(util_data * 100), label=label)
+                ax3.plot(time_in_weeks / 52.14 * 12, moving_average(util_data * 100), label=short_names[label], color=color_map[short_names[label]])
             
-        ax3.set_ylabel('Resource Utilization (%)')
-        ax3.set_xlabel('Time (weeks)', labelpad=0)
-        ax3.legend(loc='lower right', bbox_to_anchor=(-0.05, 1), fontsize=9, frameon=False)
-        ax3.grid(True)
+        ax3.set_ylabel('Resource Utilization (%)', fontsize=12)
+        ax3.set_xlabel('Time (months)', labelpad=0, fontsize=12)
+        ax3.legend(fontsize=11, frameon=False, ncols=5)
+        ax3.grid(False)
         ax3.set_xlim(left=0)
         ax3.set_ylim(bottom=0)
         if include_noise_in_util and simulate_noise:
             moving_avrg_string += '; including noise'
-        ax3.set_title(f'Resource Utilization over Time ({moving_avrg_string})')
+        ax3.set_title(f'Resource Utilization by Teams', fontsize=14)# over Time ({moving_avrg_string})')
 
 
 
@@ -3969,19 +4043,20 @@ class PDsim:
                 values[subcategory], 
                 width, 
                 bottom=bottom, 
-                label=subcategory.replace("_", " ")
+                label=subcategory.replace("_", " "),
+                color=color_map[subcategory]
             )
             bottom += np.array(values[subcategory])
         
-        ax4.set_title('Effort Breakdown')
+        ax4.set_title('Effort Breakdown', fontsize=14)
         ax4.set_xticks(x)
         if split_plots == 'profession':
             labels = [category + 's' for category in categories]
         else:
             labels = categories
-        ax4.set_xticklabels(labels, rotation=10, ha='right')
-        ax4.set_ylabel('Effort (person-days)')
-        ax4.legend(prop={'size': 8}, frameon=False)
+        ax4.set_xticklabels(labels)
+        ax4.set_ylabel('Effort (person-months)', fontsize=12)
+        ax4.legend(prop={'size': 11}, frameon=False)
 
 
         # Component Cost Breakdown
@@ -4002,8 +4077,8 @@ class PDsim:
         # Plot stacked bars
         bottom = np.zeros(len(elements))
         for activity in activities:
-            activity_costs = [round(component_cost_breakdown[element][activity] / 1000, 1) for element in elements]
-            bars = ax5.bar(x, activity_costs, width, label=activity, bottom=bottom)
+            activity_costs = [round(component_cost_breakdown[element][activity] / 1000000, 3) for element in elements]
+            bars = ax5.bar(x, activity_costs, width, label=activity, bottom=bottom, color=color_map[activity])
 
             # Place labels at the center of each bar segment
             for bar, cost in zip(bars, activity_costs):
@@ -4031,11 +4106,11 @@ class PDsim:
             linewidth=1
         )
         
-        ax5.set_title('Component Cost Breakdown')
-        ax5.set_ylabel('Development Cost ($k)')
+        ax5.set_title('Component Cost Breakdown', fontsize=14)
+        ax5.set_ylabel('Development Cost ($m)', fontsize=12)
         ax5.set_xticks(x)
-        ax5.set_xticklabels(elements, rotation=10, ha='right')
-        ax5.legend(prop={'size': 8}, frameon=False)
+        ax5.set_xticklabels(elements)
+        ax5.legend(prop={'size': 11}, frameon=False)
 
         # System Cost Breakdown
         ax6 = fig.add_subplot(gs[2, 1])
@@ -4058,8 +4133,8 @@ class PDsim:
         # Plot stacked bars
         bottom = np.zeros(len(elements))
         for activity in activities:
-            activity_costs = [round(system_cost_breakdown[element][activity] / 1000, 1) for element in elements]
-            bars = ax6.bar(x, activity_costs, width, label=activity, bottom=bottom)
+            activity_costs = [round(system_cost_breakdown[element][activity] / 1000000, 3) for element in elements]
+            bars = ax6.bar(x, activity_costs, width, label=activity, bottom=bottom, color=color_map[activity])
 
             # Place labels at the center of each bar segment
             for bar, cost in zip(bars, activity_costs):
@@ -4081,11 +4156,11 @@ class PDsim:
             linewidth=1
         )
         
-        ax6.set_title('System Cost Breakdown')
-        ax6.set_ylabel('Development Cost ($k)')
+        ax6.set_title('System Cost Breakdown', fontsize=14)
+        ax6.set_ylabel('Development Cost ($m)', fontsize=12)
         ax6.set_xticks(x)
-        ax6.set_xticklabels(elements, rotation=45)
-        ax6.legend(prop={'size': 8}, frameon=False)
+        ax6.set_xticklabels(elements)
+        ax6.legend(prop={'size': 11}, frameon=False)
         plt.tight_layout()
 
 
@@ -4108,7 +4183,7 @@ class PDsim:
             plt.savefig(self.save_folder +  '/single_run_results_' + self.file_name_extention + '.svg', format='svg')
         else:
             plt.savefig(self.save_folder +  '/single_run_results.png')
-            plt.savefig(self.save_folder +  '/single_run_results.svg', format='svg')
+            plt.savefig(self.save_folder +  '/Dashboard.svg', format='svg')
             plt.show()
             
     
@@ -4153,18 +4228,19 @@ class PDsim:
                 key = self.org_network.get_team(agent)
             if key in {'Suppliers', 'Supplier'}:
                 continue
-            
-            if key not in effort_breakdown:
-                effort_breakdown[key] = data
-                total_effort[key] = 0
-            else:
-                for state, effort in data.items():
-                    if state not in {'Idle', 'Noise'}:
-                        total_effort[key] += effort
-                    if state not in effort_breakdown[key]:
-                        effort_breakdown[key][state] = effort
-                    else:
-                        effort_breakdown[key][state] += effort
+                
+            for state, effort in data.items():
+                if key not in effort_breakdown:
+                    effort_breakdown[key] = {}
+                    total_effort[key] = 0
+                    
+                effort = effort / (work_hours_per_day * work_days_per_week * 52.14) * 12 # person-months
+                if state not in {'Idle', 'Noise'}:
+                    total_effort[key] += effort
+                if state not in effort_breakdown[key]:
+                    effort_breakdown[key][state] = effort
+                else:
+                    effort_breakdown[key][state] += effort
                 
         # Remove keys with only zero values in total_effort
         if not self.montecarlo:
@@ -4292,7 +4368,7 @@ if __name__ == "__main__":
         overall_quality_goal=0.90,
         
         # Input data location (None for test data)
-        #folder='Architecture/Inputs/DOE3 - New Tool/DOE3-11',
+        #folder='Architecture/Inputs/DOE3 - New Tool/DOE3-53',
         folder='Architecture/Inputs/Baseline',
         
         # debugging
@@ -4306,7 +4382,7 @@ if __name__ == "__main__":
         slow_logs=False,
         print_status=True,
         
-        random_seed=None
+        random_seed= 3109929715      # Candidates: 3109929715, 2813780059
     )
     
     sim.sim_run()
