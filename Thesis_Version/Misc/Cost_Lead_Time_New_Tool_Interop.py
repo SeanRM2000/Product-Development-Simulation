@@ -115,7 +115,7 @@ for i, (result_string, label) in enumerate(results.items()):
 plt.grid(False)
 handles, labels = axes[0].get_legend_handles_labels()
 fig.legend(handles, labels, loc='upper center', ncol=len(labels), fontsize=11, frameon=False)
-plt.tight_layout(rect=[0, 0, 1, 0.9])
+plt.tight_layout(rect=[-0.02, -0.06, 1.02, 0.9])
 
 plt.savefig(save_file, format='svg')
 
