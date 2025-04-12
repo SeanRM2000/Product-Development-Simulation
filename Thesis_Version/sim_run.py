@@ -3784,7 +3784,7 @@ class PDsim:
         ax1.tick_params(labelsize=11)
         ax1.set_xlabel('Time (months)', fontsize=12)
         ax1.grid(False)
-        ax1.legend(fontsize=12, frameon=False)
+        ax1.legend(fontsize=11, frameon=False)
         
         fig.tight_layout(pad=0)
         # Save the plot
@@ -3847,7 +3847,7 @@ class PDsim:
         ax1.tick_params(labelsize=11)
         ax1.set_xlabel('Time (months)', fontsize=12)
         ax1.grid(False)
-        ax1.legend(fontsize=12, frameon=False)
+        ax1.legend(fontsize=11, frameon=False)
         
         fig.tight_layout(pad=0)
         # Save the plot
@@ -3913,18 +3913,29 @@ class PDsim:
                     ax1.barh(idx, end_time - start_time, left=start_time, height=0.4, color=color)
                     
         ax1.set_yticks(y_positions)
-        ax1.set_yticklabels(y_labels, fontsize=7.5)
+        ax1.set_yticklabels(y_labels, fontsize=8)
         ax1.invert_yaxis()
         ax1.grid(axis='x', linestyle='--', alpha=0.7)
-        ax1.set_title('Gantt Chart of Activities', fontsize=14)
-        ax1.set_xlabel('Time (months)', labelpad=0, fontsize=12)
-        ax1.set_ylabel('Activities', fontsize=12)
+        ax1.set_title('Gantt Chart of Activities', fontsize=18)
+        ax1.set_xlabel('Time (months)', labelpad=0, fontsize=14)
+        ax1.set_ylabel('Activities', fontsize=14)
+        ax1.tick_params(axis='x', labelsize=12)
         ax1.set_ylim(len(sorted_activities) - 0.5, -0.5)
+        
+        
+        for idx, (label, tick) in enumerate(zip(ax1.get_yticklabels(), ax1.yaxis.get_major_ticks())):
+            if idx % 2 != 0:
+                # Shift odd labels and extend tick length
+                label.set_x(-0.09)      # Shift label to the left
+                tick.tick1line.set_visible(True)
+                tick.tick1line.set_markersize(53)  # Extend tick length for odd labels
+                tick.tick2line.set_visible(False)
+        
         # legend
         in_progress_patch = mpatches.Patch(color='blue', label='Work')
         reworking_patch = mpatches.Patch(color='red', label='Rework')
         paused_patch = mpatches.Patch(color='lightgrey', label='Paused')
-        ax1.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right', frameon=False)
+        ax1.legend(handles=[in_progress_patch, reworking_patch, paused_patch], loc='upper right', frameon=False, fontsize=12)
 
 
         short_names = {
@@ -3981,14 +3992,15 @@ class PDsim:
                 else:
                     ax2.plot(time_in_weeks / 52.14 * 12, moving_average(effort_data), label=short_names[label], color=color_map[short_names[label]])
                     
-            ax2.set_ylabel('Effort Backlog (h)', fontsize=12)
-            ax2.set_xlabel('Time (months)', labelpad=0, fontsize=12)
-            ax2.legend(fontsize=11, frameon=False, ncols=5)
+            ax2.set_ylabel('Effort Backlog (h)', fontsize=14)
+            ax2.set_xlabel('Time (months)', labelpad=0, fontsize=14)
+            ax2.legend(fontsize=13, frameon=False, ncols=5)
+            ax2.tick_params(labelsize=12)
             ax2.grid(False)
             ax2.set_xlim(left=0)
-            ax2.set_ylim(bottom=0)
+            ax2.set_ylim(bottom=0, top=32)
             moving_avrg_string = f'moving average: {round(moving_average_plots / 24, 1)} days'
-            ax2.set_title(f'Effort Backlog by Teams', fontsize=14)# over Time ({moving_avrg_string})')
+            ax2.set_title(f'Effort Backlog by Teams', fontsize=18)# over Time ({moving_avrg_string})')
 
 
 
@@ -4007,15 +4019,16 @@ class PDsim:
             else:    
                 ax3.plot(time_in_weeks / 52.14 * 12, moving_average(util_data * 100), label=short_names[label], color=color_map[short_names[label]])
             
-        ax3.set_ylabel('Resource Utilization (%)', fontsize=12)
-        ax3.set_xlabel('Time (months)', labelpad=0, fontsize=12)
-        ax3.legend(fontsize=11, frameon=False, ncols=5)
+        ax3.set_ylabel('Resource Utilization (%)', fontsize=14)
+        ax3.set_xlabel('Time (months)', labelpad=0, fontsize=14)
+        ax3.legend(fontsize=13, frameon=False, ncols=5)
+        ax3.tick_params(labelsize=12)
         ax3.grid(False)
         ax3.set_xlim(left=0)
-        ax3.set_ylim(bottom=0)
+        ax3.set_ylim(bottom=0, top=50)
         if include_noise_in_util and simulate_noise:
             moving_avrg_string += '; including noise'
-        ax3.set_title(f'Resource Utilization by Teams', fontsize=14)# over Time ({moving_avrg_string})')
+        ax3.set_title(f'Resource Utilization by Teams', fontsize=18)# over Time ({moving_avrg_string})')
 
 
 
@@ -4048,15 +4061,17 @@ class PDsim:
             )
             bottom += np.array(values[subcategory])
         
-        ax4.set_title('Effort Breakdown', fontsize=14)
+        ax4.set_title('Effort Breakdown', fontsize=18)
         ax4.set_xticks(x)
         if split_plots == 'profession':
             labels = [category + 's' for category in categories]
         else:
             labels = categories
-        ax4.set_xticklabels(labels)
-        ax4.set_ylabel('Effort (person-months)', fontsize=12)
-        ax4.legend(prop={'size': 11}, frameon=False)
+        ax4.set_xticklabels(labels, fontsize=12)
+        ax4.set_ylabel('Effort (person-months)', fontsize=14)
+        ax4.set_ylim(top=30)
+        ax4.tick_params(axis='y', labelsize=12)
+        ax4.legend(prop={'size': 12}, frameon=False)
 
 
         # Component Cost Breakdown
@@ -4070,6 +4085,7 @@ class PDsim:
                 component_cost_breakdown[element] = costs
 
         elements = list(component_cost_breakdown.keys())
+        
         activities = list(next(iter(component_cost_breakdown.values())).keys())
         x = np.arange(len(elements))
         width = 0.5
@@ -4106,11 +4122,13 @@ class PDsim:
             linewidth=1
         )
         
-        ax5.set_title('Component Cost Breakdown', fontsize=14)
-        ax5.set_ylabel('Development Cost ($m)', fontsize=12)
+        ax5.set_title('Component Cost Breakdown', fontsize=18)
+        ax5.set_ylabel('Development Cost ($m)', fontsize=14)
         ax5.set_xticks(x)
-        ax5.set_xticklabels(elements)
-        ax5.legend(prop={'size': 11}, frameon=False)
+        elements = [label.replace(' ', '\n') for label in elements]
+        ax5.set_xticklabels(elements, fontsize=12)
+        ax5.tick_params(axis='y', labelsize=12)
+        ax5.legend(prop={'size': 12}, frameon=False)
 
         # System Cost Breakdown
         ax6 = fig.add_subplot(gs[2, 1])
@@ -4156,12 +4174,13 @@ class PDsim:
             linewidth=1
         )
         
-        ax6.set_title('System Cost Breakdown', fontsize=14)
-        ax6.set_ylabel('Development Cost ($m)', fontsize=12)
+        ax6.set_title('System Cost Breakdown', fontsize=18)
+        ax6.set_ylabel('Development Cost ($m)', fontsize=14)
         ax6.set_xticks(x)
-        ax6.set_xticklabels(elements)
-        ax6.legend(prop={'size': 11}, frameon=False)
-        plt.tight_layout()
+        ax6.set_xticklabels(elements, fontsize=12)
+        ax6.tick_params(axis='y', labelsize=12)
+        ax6.legend(prop={'size': 12}, frameon=False)
+        plt.tight_layout(rect=[0, -0.01, 1.008, 1.01])
 
 
         self.data_prep_time = time.time() - self.data_prep_start_time

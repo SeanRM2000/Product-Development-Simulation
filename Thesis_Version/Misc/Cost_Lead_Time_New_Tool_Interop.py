@@ -102,15 +102,15 @@ for i, (result_string, label) in enumerate(results.items()):
     ax.set_ylabel(label, fontsize=12)
 
     y_ticks = y_ticks_dict.get(result_string)
-    if y_ticks:
-        ax.set_yticks(y_ticks)
+    ax.set_yticks(y_ticks)
+    ax.set_yticklabels(ax.get_yticks(), fontsize=11)
     
     
     ax.set_xlabel(r'Interoperability $T_{I}$', fontsize=12)
         
     x_ticks = x_ticks_dict.get(doe)
     ax.set_xticks(x_ticks)
-    
+    ax.set_xticklabels(ax.get_xticks(), fontsize=11)
 
 plt.grid(False)
 handles, labels = axes[0].get_legend_handles_labels()
